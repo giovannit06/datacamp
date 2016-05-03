@@ -1,0 +1,116 @@
+---
+title: "Titanic"
+author: "GT"
+date: "3 mai 2016"
+output: html_document
+---
+
+## Titanic: Machine Learning from Disaster
+
+### Datacamp tutorial
+
+When the Titanic sank, 1502 of the 2224 passengers and crew got killed. One of the main reasons for 
+this high level of casualties was the lack of lifeboats on this supposedly unsinkable ship.
+
+Those that have seen the movie know that some individuals were more likely to survive the sinking 
+(lucky Rose) than others (poor Jack). In this course you wil apply machine learning techniques to 
+predict a passenger's chance of surviving using R.
+
+Let's start with loading in the training and testing set into your R environment. You will use the 
+training set to build your model, and the test set to validate it. The data is stored on the web as 
+CSV files. You can load this data with the `read.csv()` function.
+
+```{r}
+train = read.csv("train.csv")
+test = read.csv("test.csv")
+```
+
+Before starting with the actual analysis, it's important to understand the structure of your data. 
+Both `test` and `train` are data frames, R's way of representing a dataset. You can easily explore a 
+data frame using the `str()` function. `str()` gives you information such as the data types in the 
+data frame (e.g. `int` for integer), the number of observations, and the number of variables.
+
+```{r}
+str(train)
+str(test)
+```
+
+How many people in your training set survived the disaster with the Titanic? To see this, you can use 
+the `table()` command in combination with the `$`-operator to select a single column of a data frame:
+
+```{r}
+# absolute numbers
+table(train$Survived) 
+
+# proportions
+prop.table(table(train$Survived))
+```
+
+You see that 549 individuals died (62%) and 342 survived (38%). A simple prediction heuristic could thus 
+be "majority wins": you predict every unseen observation to not survive.
+
+In general, the `table()` command can help you to explore which variables have predictive value. 
+For example, maybe gender could play a role as well? For a two-way comparison, also including gender, 
+you can use
+
+```{r}
+table(train$Sex, train$Survived)
+```
+
+To get proportions, you can again wrap `prop.table()` around `table()`, but you'll have to specify whether 
+you want row-wise or column-wise proportions: This is done by setting the second argument of `prop.table()`, called `margin`, to 1 or 2, respectively.
+
+```{r}
+prop.table(table(train$Sex, train$Survived), margin = 1)
+```
+
+Female had over a 50% chance of surviving.
+
+Another variable that could influence survival is age: it's probable children were saved first. You can test 
+this by creating a new column with a categorical variable `child`.
+
+To add this new variable you need to do two things:
+
+1. Create a new column `Child`, which is done through the `$` operator.
+  
+```{r}
+train$Child <- NA
+```
+  
+2. Provide the values for each observation (i.e., row) based on the age of the passenger. You can use a 
+boolean test inside square brackets for this. Set the `Child` variable to `1` for passengers aged less
+than 18 years old, and `0` the others.
+
+```{r}
+train$Child[train$Age < 18] <- 1
+train$Child[train$Age >= 18] <- 0
+```
+  
+3. Do a two-way comparison on the number of children vs adults that survived, in row-wise proportions
+
+```{r}
+prop.table(table(train$Child, train$Survived), margin = 1)
+```
+
+While less obviously than gender, Age also seems to have an impact on survival.
+
+In your training set, females had over a 50% chance of surviving and males had less than a 50% 
+chance of surviving. Hence, you could use this information for your first prediction: all females 
+in the test set survive and all males in the test set die.
+
+You use your test set for validating your predictions. You might have seen that, contrary to 
+the training set, the test set has no `Survived` column. You add such a column using your 
+predicted values. Next, when uploading your results, Kaggle will use this column (= your predictions) 
+to score your performance.
+
+```{r}
+# Copy of test
+test_one <- test
+
+# Initialize a Survived column to 0
+test_one$Survived = 0
+
+# Set Survived to 1 if Sex equals "female"
+test_one$Survived[test_one$Sex == "female"] = 1
+```
+

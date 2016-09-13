@@ -406,3 +406,57 @@ You randomize in two ways: by taking a randomized sample of the rows in your
 training set and by only working with a limited and changing number of the
 available variables for every node of the tree.
 
+For a Random Forest analysis in R you make use of the `randomforest()` function
+in the `randomForest` package. You call the function in a similar way as 
+`rpart()`:
+
+- First you provide the `formula`. There is no argument `class` here to
+  inform the function you're dealing with predicting a categorical
+  variable, so you need to turn `Survived` into a factor with two 
+  levels: `as.factor(Survived) ~ Pclass + Sex + Age`
+- The `data` argument takes the `train` data frame
+- When you put the `importance` argument to `TRUE` you can inspect
+  variable importance
+- The `ntree` argument specifies the number of trees to grow. Limit
+  these when having only limited computational power at your disposal.
+
+The end, since Random Forest uses randomization, you set a seed like
+this `set.seed(111)` to assurance reproducibility of you result. Once
+the model is constructed, you can use the prediction function
+`predict()`.
+
+- Perform a Random Forest and name the model `my_forest`. Use the
+  variables Passenger Class, Sex, Age, Number of Siblings/Spouses
+  Aboard, Number of Parents/Children Aboard, Passenger Fare, Port
+  of Embarkation, and Title (in this order)
+- Set the number of tree to grow to 1000 and make sure you can
+  inspect variable importance
+- Make a prediction (`my_prediction2`) on the test set using
+  the `predict()` function
+- Create a data frame `my_solution3` that contains the solution in
+  line with the Kaggle standards.
+- Turn your solution into a csv file with the name `my_solution3.csv`
+
+```{r}
+# Load in the package
+library(randomForest)
+
+# Set seed for reproducibility
+set.seed(111)
+
+# Apply the Random Forest Algorithm
+my_forest <- randomForest(as.factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch + 
+                            Fare + Embarked + Title,
+                       data = train, 
+                       importance = TRUE,
+                       ntree = 1000)
+
+# Make your prediction using the test set
+my_prediction2 <- predict(my_forest, test)
+
+# Create a data frame with two columns: PassengerId & Survived. Survived contains your predictions
+my_solution3 <- data.frame(PassengerId = test$PassengerId, Survived = my_prediction2)
+
+# Write your solution away to a csv file with the name my_solution.csv
+write.csv(my_solution3, file = "my_solution3.csv", row.names = FALSE)
+```

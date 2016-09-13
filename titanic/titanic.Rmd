@@ -460,3 +460,24 @@ my_solution3 <- data.frame(PassengerId = test$PassengerId, Survived = my_predict
 # Write your solution away to a csv file with the name my_solution.csv
 write.csv(my_solution3, file = "my_solution3.csv", row.names = FALSE)
 ```
+
+With the Random Forest object `my_forest` still loaded. Remember you set
+`importance = TRUE`? Now you can see what variable are important using
+
+```
+varImpPlot(my_forest)
+```
+
+When running the function, two graphs appear: the accuracy plot show
+how much worse the model would perform without the included variables.
+So a high decrease (= high value x-axis) links to a high predictive
+variable. The second plot is the Gini coefficient. The higher the
+variable scores here, the more important it is for the model.
+
+```{r}
+varImpPlot(my_forest)
+```
+
+Based on the two plots, the `Title` variable has the highest impact on the model.
+
+

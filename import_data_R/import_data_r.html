@@ -650,17 +650,329 @@ tables &lt;- lapply(table_names, dbReadTable, conn = con)
 
 # Print out tables
 tables</code></pre>
-<p>Now that you have an R version of all data that is contained in the database, you can dive a little deeper into the relations between the different data frames. #### How do the tables relate ?</p>
+<p>Now that you have an R version of all data that is contained in the database, you can dive a little deeper into the relations between the different data frames.</p>
+</div>
+<div id="how-do-the-tables-relate" class="section level4">
+<h4>How do the tables relate ?</h4>
+<p>If you have a closer look at these tables, you’ll see that the <code>tweats</code> table, for example, contains a column <code>user_id</code>. The ids in the column refer to the users that have posted the tweat. Similarly, the <code>comments</code> contain both a <code>user_id</code> and a <code>tweat_id</code> column. It specifies which user posted a comment on which tweat.</p>
+<p>With this new knowledge, can you tell <strong>who</strong> posted the <strong>tweat</strong> on which somebody <strong>commented</strong> “awesome!thanks!” (comment 1012)?</p>
+<pre><code>&gt; tables
+$comments
+     id tweat_id user_id            message
+1  1022       87       7              nice!
+2  1000       77       7             great!
+3  1011       49       5            love it
+4  1012       87       1   awesome! thanks!
+5  1010       88       6              yuck!
+6  1026       77       4      not my thing!
+7  1004       49       1  this is fabulous!
+8  1030       75       6           so easy!
+9  1025       88       2             oh yes
+10 1007       49       3           serious?
+11 1020       77       1 couldn't be better
+12 1014       77       1       saved my day
+
+$tweats
+  id user_id
+1 75       3
+2 88       4
+3 77       6
+4 87       5
+5 49       1
+6 24       7
+                                                                 post
+1                                       break egg. bake egg. eat egg.
+2                           wash strawberries. add ice. blend. enjoy.
+3                       2 slices of bread. add cheese. grill. heaven.
+4               open and crush avocado. add shrimps. perfect starter.
+5 nachos. add tomato sauce, minced meat and cheese. oven for 10 mins.
+6                              just eat an apple. simply and healthy.
+        date
+1 2015-09-05
+2 2015-09-14
+3 2015-09-21
+4 2015-09-22
+5 2015-09-22
+6 2015-09-24
+
+$users
+  id      name     login
+1  1 elisabeth  elismith
+2  2      mike     mikey
+3  3      thea   teatime
+4  4    thomas tomatotom
+5  5    oliver olivander
+6  6      kate  katebenn
+7  7    anjali    lianja</code></pre>
+<p>Answer: The user with user_id 5, so Oliver.</p>
 </div>
 </div>
 <div id="importing-data-from-databases-1" class="section level3">
 <h3>Importing data from databases</h3>
+<p>Importing an entire table from a database while you might only need a tiny bit of information seems like a lot of unncessary work. In this chapter, you’ll learn about SQL queries, which will help you make things more efficient by performing some computations on the database side.</p>
+<div id="query-tweater" class="section level4">
+<h4>Query tweater</h4>
+<p>If your life as a data scientist, you’ll often be working with huge databases that contain tables with millions of rows. If want to do some analyses on this data, it’s possible that you only need a fraction of this data. In this case, it’s a good idea to send SQL queries to your database, and only import the data you actually need into R.</p>
+<p><code>dbGetQuery()</code> is what you need. As usual, you first pass the connection object to it. The second argument is an SQL query in the form of a character string. This example selects the <code>age</code> variable from the <code>people</code> dataset where <code>gender</code> equals <code>&quot;male&quot;</code>:</p>
+<pre><code>dbGetQuery(con, &quot;SELECT age FROM people WHERE gender = 'male'&quot;)</code></pre>
+<pre class="r"><code># Import tweat_id column of comments where user_id is 1: elisabeth
+elisabeth &lt;- dbGetQuery(con, &quot;SELECT tweat_id FROM comments WHERE user_id = 1&quot;)
+
+# Print elisabeth
+elisabeth</code></pre>
+<p>Apart from checking equality, you can also check for <em>less than</em> and <em>greater than</em> relationships, with <code>&lt;</code> and <code>&gt;</code>, just like R.</p>
+<pre class="r"><code># Import post column of tweats where date is higher than '2015-09-21': latest
+latest &lt;- dbGetQuery(con, &quot;SELECT post FROM tweats WHERE date &gt; '2015-09-21'&quot;)
+
+# Print latest
+latest</code></pre>
+<p>Suppose that you have a <code>people</code> table, with a bunch of information. This time, you want to find out the <code>age</code> and <code>country</code> of married males. Provided that there is a <code>married</code> column that’s 1 when the person in question is married, the following query would work.</p>
+<pre><code>SELECT age, country
+  FROM people
+    WHERE gender = &quot;male&quot; AND married = 1</code></pre>
+<pre class="r"><code># Create data frame specific
+specific &lt;- dbGetQuery(con, &quot;SELECT message FROM comments 
+                            WHERE tweat_id = 77 AND user_id &gt; 4&quot;)
+
+# Print specific
+specific</code></pre>
+<p>There are also dedicated SQL functions that you can use in the <code>WHERE</code> clause of an SQL query. For example, <code>CHAR_LENGTH()</code> returns the number of characters in a string.</p>
+<pre class="r"><code># Create data frame short
+short &lt;- dbGetQuery(con, &quot;SELECT id, name FROM users 
+                          WHERE CHAR_LENGTH(name) &lt; 5&quot;)
+
+# Print short
+short</code></pre>
+</div>
+<div id="join-the-query-madness" class="section level4">
+<h4>Join the query madness!</h4>
+<p>Of course, SQL does not stop with the three keywords <code>SELECT</code>, <code>FROM</code> and <code>WHERE</code>. Another very often used keyword is <code>JOIN</code>, and more specifically <code>INNER JOIN</code>. Take this call for example:</p>
+<pre><code>SELECT name, post
+  FROM users INNER JOIN tweats on users.id = user_id
+    WHERE date &gt; &quot;2015-09-19&quot;</code></pre>
+<p>Here, the <code>users</code> table is joined with the <code>tweats</code>. This is possible because the <code>id</code> column in the <code>users</code> table corresponds to the <code>user_id</code> column in the <code>tweats</code>. Also notice how <code>name</code>, from the <code>users</code> table, and <code>post</code> and <code>date</code>, from the <code>tweats</code> table, can be referenced without problems.</p>
+</div>
+<div id="send---fetch---clear" class="section level4">
+<h4>Send - Fetch - Clear</h4>
+<p>You’ve used <code>dbGetQuery()</code> multiple times now. This is a virtual function from the <code>DBI package</code>, but is actually implemented by the <code>RMySQL</code> package. Behind the scenes, the following steps are performed:</p>
+<ul>
+<li>Sending the specified query with `dbSendQuery();</li>
+<li>Fetching the result of executing the query on the database with `dbFetch();</li>
+<li>Clearing the result with <code>dbClearResult()</code>.</li>
+</ul>
+<p>Let’s not use <code>dbGetQuery()</code> this time and implement the steps above. This is tedious to write, but it gives you the ability te fetch the query’s result in chunks rather than all at once. You can do this by specifying the <code>n</code> argument inside <code>dbFetch()</code>.</p>
+<pre class="r"><code># Send query to the database
+res &lt;- dbSendQuery(con, &quot;SELECT * FROM comments WHERE user_id &gt; 4&quot;)
+
+# Use dbFetch() twice
+dbFetch(res, n = 2)
+dbFetch(res)
+
+# Clear res
+dbClearResult(res)</code></pre>
+<p>In our toy example, chopping up the fetches doesn’t make a lot of sense, but make sure to remember this technique when you’re struggling with huge databases!</p>
+</div>
+<div id="be-polite-and" class="section level4">
+<h4>Be polite and …</h4>
+<p>Every time you connect to a database using <code>dbConnect()</code>, you’re creating a new connection to the database you’re referencing. <code>RMySQL</code> automatically specifies a maximum of open connections and closes some of the connections for you, but still: it’s always polite to manually disconnect from the database afterwards. You do this with the <code>dbDisconnect()</code> function.</p>
+<pre class="r"><code># Create the data frame  long_tweats
+long_tweats &lt;- dbGetQuery(con, &quot;SELECT post, date FROM tweats WHERE CHAR_LENGTH(post) &gt; 40&quot;)
+
+# Print long_tweats
+print(long_tweats)
+
+# Disconnect from the database
+dbDisconnect(con)</code></pre>
+</div>
 </div>
 <div id="importing-data-from-the-web" class="section level3">
 <h3>Importing data from the web</h3>
+<p>More and more of the information that data scientists are using resides on the web. Importing this data into R requires an understanding of the protocols used on the web. In this chapter, you’ll get a crash course in HTTP and learn to perform your own HTTP requests from inside R.</p>
+<div id="import-flat-files-from-the-web" class="section level4">
+<h4>Import flat files from the web</h4>
+<p>In the video, you saw that the <code>utils</code> functions to import flat file data, such as <code>read.csv()</code> and <code>read.delim()</code>, are capable of automatically importing from URLs that point to flat files on the web.</p>
+<p>You must be wondering whether Wickham’s alternative package, <code>readr</code>, is equally potent.</p>
+<pre class="r"><code># Load the readr package
+library(readr)
+
+# Import the csv file: pools
+url_csv &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/swimming_pools.csv&quot;
+pools &lt;- read_csv(url_csv)
+
+# Import the txt file: potatoes
+url_delim &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/potatoes.txt&quot;
+potatoes &lt;- read_tsv(url_delim)
+
+# Print pools and potatoes
+pools
+potatoes</code></pre>
+<p>Great! It seems to work without any additional problems!</p>
+</div>
+<div id="secure-importing" class="section level4">
+<h4>Secure Importing</h4>
+<p>In the previous exercises, you have been working with URLs that all start with <code>http://</code>. There is, however, a safer alternative to HTTP, namely HTTPS, which stands for HypterText Transfer Protocol Secure. Just remember this: HTTPS is relatively safe, HTTP is not.</p>
+<p>Luckily for us, you can use the standard importing functions with <code>https://</code> connections since R version 3.2.2.</p>
+<pre class="r"><code># https URL to the swimming_pools csv file.
+url_csv &lt;- &quot;https://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/swimming_pools.csv&quot;
+
+# Import the file using read.csv(): pools1
+pools1 &lt;- read.csv(url_csv)</code></pre>
+</div>
+<div id="import-excel-files-from-the-web" class="section level4">
+<h4>Import Excel files from the web</h4>
+<p>When you learned about <code>gdata</code>, it was already mentioned that <code>gdata</code> can handle <code>.xls</code> files that are on the internet. <code>readxl</code> can’t, at least not yet. The URL which you’ll be working is already available in the sample code. You will import it once using <code>gdata</code> and once with the <code>readxl</code> package via a workaround.</p>
+<pre class="r"><code># Load the readxl and gdata package
+library(readxl)
+library(gdata)
+
+# Specification of url: url_xls
+url_xls &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/latitude.xls&quot;
+
+# Import the .xls file with gdata: excel_gdata
+excel_gdata &lt;- read.xls(url_xls)
+
+# Download file behind URL, name it local_latitude.xls
+local_latitude &lt;- download.file(url_xls, &quot;local_latitude.xls&quot;)
+
+# Import the local .xls file with readxl: excel_readxl
+excel_readxl &lt;- read_excel(&quot;local_latitude.xls&quot;)</code></pre>
+</div>
+<div id="downloading-any-file-secure-or-not" class="section level4">
+<h4>Downloading any file, secure or not</h4>
+<p>In the previous exercise you’ve seen how you can read excel files on the web using the <code>read_excel</code> package by first downloading the file with the <code>download.file()</code> function.</p>
+<p>There’s more: with <code>download.file()</code> you can download any kind of file from the web, using HTTP and HTTPS: images, executable files, but also <code>.RData</code> files. An <code>RData</code> file is very efficient format to store R data.</p>
+<p>You can load data from an <code>RData</code> file using the <code>load()</code> function, but this function does not accept a URL string as an argument.</p>
+<pre class="r"><code># https URL to the wine RData file.
+url_rdata &lt;- &quot;https://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/wine.RData&quot;
+
+# Download the wine file to your working directory
+download.file(url_rdata, &quot;wine_local.RData&quot;)
+
+# Load the wine data into your workspace using load()
+load(&quot;wine_local.RData&quot;)
+
+# Print out the summary of the wine data
+summary(wine)</code></pre>
+<p>Another way to load remote <code>RData</code> files is to use <code>url()</code> function inside <code>load()</code>. However, this will not save the <code>RData</code> file to a local file.</p>
+</div>
+<div id="httphttr" class="section level4">
+<h4>HTTP?httr!</h4>
+<p>Downloading a file from the Internet means sending a GET request and receiving the file you asked for. Internally, all the previously discussed functions use a GET request to download files.</p>
+<p><code>httr</code> provides a convenient function, <code>GET()</code> to execute this GET request. The result is a <code>response</code> object, that provides easy access to the status code, content-type and, of course, the actual content.</p>
+<p>You can extract the content from the request using <code>content()</code> function. At the time of writing, there are three ways to retrieve this content: as a rawo object, as a character vector, or an R object, such a list. If you don’t tell <code>content()</code> how to retrieve the content through the <code>as</code> argument, it’ll try its best to figure out which type is most appropriate based on the content-type.</p>
+<pre class="r"><code># Load the httr package
+library(httr)
+
+# Get the url, save response to resp
+url &lt;- &quot;http://www.example.com/&quot;
+resp &lt;- GET(url)
+
+# Print resp
+resp
+
+# Get the raw content of resp: raw_content
+raw_content &lt;- content(resp, as = &quot;raw&quot;)
+
+# Print the head of raw_content
+head(raw_content)</code></pre>
+<p>The raw content of the response doesn’t make a lot of sense, does it? Luckily, the <code>content()</code> function by default, if you don’t specify the <code>as</code> argument, figures out what type of data you’re dealing with and parses it for you.</p>
+<p>Web content does not limit itself to HTML pages and files stored on remote servers such as DataCamp’s Amazon S3 instances. There are may other data formats out there. A very common one is JSON. This format is very often used by so-called Web APIs, interfaces to web servers with which you as client can communicate to get or store information in more complicated ways.</p>
+<pre class="r"><code># httr is already loaded
+
+# Get the url
+url &lt;- &quot;https://www.omdbapi.com/?t=Annie+Hall&amp;y=&amp;plot=short&amp;r=json&quot;
+resp &lt;- GET(url)
+
+# Print resp
+resp
+
+# Print content of resp as text
+content(resp, as=&quot;text&quot;)
+
+# Print content of resp
+content(resp)</code></pre>
+<p>The fact that <code>httr</code> converts the JSON response body automatically to an R list is very convenient.</p>
+</div>
 </div>
 <div id="importing-data-from-the-web-1" class="section level3">
 <h3>Importing data from the web</h3>
+<p>Importing data from the web is one thing; actually being able to extract useful information is another. Learn more about the JSON format to get one step closer to web domination.</p>
+<div id="from-json-to-r" class="section level4">
+<h4>From JSON to R</h4>
+<p>In the simplest setting, <code>fromJSON()</code> can convert character strings that represent JSON data into a nicely structured R list.</p>
+<pre class="r"><code># Load the jsonlite package
+library(jsonlite)
+
+# wine_json is a JSON
+wine_json &lt;- '{&quot;name&quot;:&quot;Chateau Migraine&quot;, &quot;year&quot;:1997, &quot;alcohol_pct&quot;:12.4, &quot;color&quot;:&quot;red&quot;, &quot;awarded&quot;:false}'
+
+# Convert wine_json into a list: wine
+wine &lt;- fromJSON(wine_json)
+
+# Print structure of wine
+str(wine)</code></pre>
+</div>
+<div id="quandl-api" class="section level4">
+<h4>Quandl API</h4>
+<p><code>fromJSON()</code> also works if you pass a URL as a character string or the path to a local file that contains JSON data. Let’s try this out on the Quandl API, where you can fetch all sorts of financial and economical data.</p>
+<pre class="r"><code># jsonlite is preloaded
+
+# Definition of quandl_url
+quandl_url &lt;- &quot;http://www.quandl.com/api/v1/datasets/IWS/INTERNET_INDIA.json?auth_token=i83asDsiWUUyfoypkgMz&quot;
+
+# Import Quandl data: quandl_data
+quandl_data &lt;- fromJSON(quandl_url)
+
+# Print structure of quandl_data
+str(quandl_data)</code></pre>
+<p>You successfully imported JSON data directly from the web. If you have a close look at the structure of <code>quandl_data</code>, you’ll see that the data element is a matrix.</p>
+</div>
+<div id="omdb-api" class="section level4">
+<h4>OMDb API</h4>
+<p>You saw how easy it is to interact with an API once you know how to formulate requests. You also saw how to fetch all information on Rain Man from OMDb. Simply performa <code>GET()</code> call, and next ask for the contents with the <code>content()</code> function. This <code>content()</code> function, which is part of the <code>httr</code> package, uses <code>jsonlite</code> behind the scenes to import the JSON data into R.</p>
+<p>However, by now you also know that <code>jsonlite</code> can handle URLs itself Simply passing the request URL to <code>fromJSON()</code> will get your data into R.</p>
+<pre class="r"><code># The package jsonlite is already loaded
+
+# Definition of the URLs
+url_sw4 &lt;- &quot;http://www.omdbapi.com/?i=tt0076759&amp;r=json&quot;
+url_sw3 &lt;- &quot;http://www.omdbapi.com/?i=tt0121766&amp;r=json&quot;
+
+# Import two URLs with fromJSON(): sw4 and sw3
+sw4 &lt;- fromJSON(url_sw4)
+sw3 &lt;- fromJSON(url_sw3)
+
+# Print out the Title element of both lists
+sw4$Title
+sw3$Title
+
+
+# Is the release year of sw4 later than sw3?
+sw4$Year &gt; sw3$Year</code></pre>
+</div>
+<div id="json-practice" class="section level4">
+<h4>JSON practice</h4>
+<p>JSON is built on two structures: objects and arrays.</p>
+<pre class="r"><code># jsonlite load
+library(jsonlite)
+# Challenge 1
+json1 &lt;- '[1, 2, 3, 4, 5, 6]'
+fromJSON(json1)</code></pre>
+<pre><code>## [1] 1 2 3 4 5 6</code></pre>
+<pre class="r"><code># Challenge 2
+json2 &lt;- '{&quot;a&quot;: [1, 2, 3], &quot;b&quot;: [4, 5, 6]}'
+fromJSON(json2)</code></pre>
+<pre><code>## $a
+## [1] 1 2 3
+## 
+## $b
+## [1] 4 5 6</code></pre>
+</div>
+<div id="tojson" class="section level4">
+<h4>toJSON()</h4>
+</div>
+<div id="minify-and-prettify" class="section level4">
+<h4>Minify and prettify</h4>
+</div>
 </div>
 <div id="importing-data-from-statistical-software" class="section level3">
 <h3>Importing data from statistical software</h3>

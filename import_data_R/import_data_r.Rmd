@@ -839,12 +839,630 @@ tables
 Now that you have an R version of all data that is contained in
 the database, you can dive a little deeper into the relations
 between the different data frames.
+
 #### How do the tables relate ?
+
+If you have a closer look at these tables, you'll see that the
+`tweats` table, for example, contains a column `user_id`. The ids 
+in the column refer to the users that have posted the tweat.
+Similarly, the `comments` contain both a `user_id` and a `tweat_id`
+column. It specifies which user posted a comment on which tweat.
+
+With this new knowledge, can you tell **who** posted the **tweat** on
+which somebody **commented** "awesome!thanks!" (comment 1012)?
+
+```
+> tables
+$comments
+     id tweat_id user_id            message
+1  1022       87       7              nice!
+2  1000       77       7             great!
+3  1011       49       5            love it
+4  1012       87       1   awesome! thanks!
+5  1010       88       6              yuck!
+6  1026       77       4      not my thing!
+7  1004       49       1  this is fabulous!
+8  1030       75       6           so easy!
+9  1025       88       2             oh yes
+10 1007       49       3           serious?
+11 1020       77       1 couldn't be better
+12 1014       77       1       saved my day
+
+$tweats
+  id user_id
+1 75       3
+2 88       4
+3 77       6
+4 87       5
+5 49       1
+6 24       7
+                                                                 post
+1                                       break egg. bake egg. eat egg.
+2                           wash strawberries. add ice. blend. enjoy.
+3                       2 slices of bread. add cheese. grill. heaven.
+4               open and crush avocado. add shrimps. perfect starter.
+5 nachos. add tomato sauce, minced meat and cheese. oven for 10 mins.
+6                              just eat an apple. simply and healthy.
+        date
+1 2015-09-05
+2 2015-09-14
+3 2015-09-21
+4 2015-09-22
+5 2015-09-22
+6 2015-09-24
+
+$users
+  id      name     login
+1  1 elisabeth  elismith
+2  2      mike     mikey
+3  3      thea   teatime
+4  4    thomas tomatotom
+5  5    oliver olivander
+6  6      kate  katebenn
+7  7    anjali    lianja
+```
+
+Answer: The user with user_id 5, so Oliver.
 
 ### Importing data from databases
 
-### Importing data from the web
+Importing an entire table from a database while you might only 
+need a tiny bit of information seems like a lot of unncessary work. 
+In this chapter, you'll learn about SQL queries, which will help 
+you make things more efficient by performing some computations 
+on the database side.
+
+#### Query tweater
+
+If your life as a data scientist, you'll often be working with 
+huge databases that contain tables with millions of rows. If
+want to do some analyses on this data, it's possible that you 
+only need a fraction of this data. In this case, it's a good idea
+to send SQL queries to your database, and only import the data
+you actually need into R.
+
+`dbGetQuery()` is what you need. As usual, you first pass the 
+connection object to it. The second argument is an SQL query
+in the form of a character string. This example selects the `age`
+variable from the `people` dataset where `gender` equals `"male"`:
+
+```
+dbGetQuery(con, "SELECT age FROM people WHERE gender = 'male'")
+```
+
+```{r eval=FALSE}
+# Import tweat_id column of comments where user_id is 1: elisabeth
+elisabeth <- dbGetQuery(con, "SELECT tweat_id FROM comments WHERE user_id = 1")
+
+# Print elisabeth
+elisabeth
+```
+
+Apart from checking equality, you can also check for _less than_ and
+_greater than_ relationships, with `<` and `>`, just like R.
+
+```{r eval=FALSE}
+# Import post column of tweats where date is higher than '2015-09-21': latest
+latest <- dbGetQuery(con, "SELECT post FROM tweats WHERE date > '2015-09-21'")
+
+# Print latest
+latest
+```
+
+Suppose that you have a `people` table, with a bunch of information.
+This time, you want to find out the `age` and `country` of married
+males. Provided that there is  a `married` column that's 1 when the 
+person in question is married, the following query would work.
+
+```
+SELECT age, country
+  FROM people
+    WHERE gender = "male" AND married = 1
+```
+
+```{r eval=FALSE}
+# Create data frame specific
+specific <- dbGetQuery(con, "SELECT message FROM comments 
+                            WHERE tweat_id = 77 AND user_id > 4")
+
+# Print specific
+specific
+```
+
+There are also dedicated SQL functions that you can use in the
+`WHERE` clause of an SQL query. For example, `CHAR_LENGTH()` returns
+the number of characters in a string.
+
+```{r eval=FALSE}
+# Create data frame short
+short <- dbGetQuery(con, "SELECT id, name FROM users 
+                          WHERE CHAR_LENGTH(name) < 5")
+
+# Print short
+short
+```
+
+#### Join the query madness!
+
+Of course, SQL does not stop with the three keywords `SELECT`,
+`FROM` and `WHERE`. Another very often used keyword is `JOIN`,
+and more specifically `INNER JOIN`. Take this call for example:
+
+```
+SELECT name, post
+  FROM users INNER JOIN tweats on users.id = user_id
+    WHERE date > "2015-09-19"
+```
+Here, the `users` table is joined with the `tweats`. This is
+possible because the `id` column in the `users` table corresponds
+to the `user_id` column in the `tweats`. Also notice how `name`,
+from the `users` table, and `post` and `date`, from the `tweats`
+table, can be referenced without problems.
+
+#### Send - Fetch - Clear
+
+You've used `dbGetQuery()` multiple times now. This is a virtual
+function from the `DBI package`, but is actually implemented by the
+`RMySQL` package. Behind the scenes, the following steps are
+performed:
+
+- Sending the specified query with `dbSendQuery();
+- Fetching the result of executing the query on the database
+  with `dbFetch();
+- Clearing the result with `dbClearResult()`.
+
+Let's not use `dbGetQuery()` this time and implement the steps
+above. This is tedious to write, but it gives you the ability
+te fetch the query's result in chunks rather than all at once.
+You can do this by specifying the `n` argument inside `dbFetch()`.
+
+```{r eval=FALSE}
+# Send query to the database
+res <- dbSendQuery(con, "SELECT * FROM comments WHERE user_id > 4")
+
+# Use dbFetch() twice
+dbFetch(res, n = 2)
+dbFetch(res)
+
+# Clear res
+dbClearResult(res)
+```
+
+In our toy example, chopping up the fetches doesn't make a lot of sense,
+but make sure to remember this technique when you're struggling with
+huge databases!
+
+#### Be polite and ...
+
+Every time you connect to a database using `dbConnect()`, you're
+creating a new connection to the database you're referencing.
+`RMySQL` automatically specifies a maximum of open connections and
+closes some of the connections for you, but still: it's always polite
+to manually disconnect from the database afterwards. You do this
+with the `dbDisconnect()` function.
+
+```{r eval=FALSE}
+# Create the data frame  long_tweats
+long_tweats <- dbGetQuery(con, "SELECT post, date FROM tweats WHERE CHAR_LENGTH(post) > 40")
+
+# Print long_tweats
+print(long_tweats)
+
+# Disconnect from the database
+dbDisconnect(con)
+```
 
 ### Importing data from the web
+
+More and more of the information that data scientists are using 
+resides on the web. Importing this data into R requires an 
+understanding of the protocols used on the web.
+In this chapter, you'll get a crash course in HTTP and learn 
+to perform your own HTTP requests from inside R.
+
+#### Import flat files from the web
+
+In the video, you saw that the `utils` functions to import flat
+file data, such as `read.csv()` and `read.delim()`, are capable
+of automatically importing from URLs that point to flat files
+on the web.
+
+You must be wondering whether Wickham's alternative package, `readr`,
+is equally potent.
+
+```{r eval=FALSE}
+# Load the readr package
+library(readr)
+
+# Import the csv file: pools
+url_csv <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/swimming_pools.csv"
+pools <- read_csv(url_csv)
+
+# Import the txt file: potatoes
+url_delim <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/potatoes.txt"
+potatoes <- read_tsv(url_delim)
+
+# Print pools and potatoes
+pools
+potatoes
+```
+
+Great! It seems to work without any additional problems!
+
+#### Secure Importing
+
+In the previous exercises, you have been working with URLs that
+all start with `http://`. There is, however, a safer alternative
+to HTTP, namely HTTPS, which stands for HypterText Transfer Protocol
+Secure. Just remember this: HTTPS is relatively safe, HTTP is not.
+
+Luckily for us, you can use the standard importing functions with
+`https://` connections since R version 3.2.2.
+
+```{r eval=FALSE}
+# https URL to the swimming_pools csv file.
+url_csv <- "https://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/swimming_pools.csv"
+
+# Import the file using read.csv(): pools1
+pools1 <- read.csv(url_csv)
+```
+
+#### Import Excel files from the web
+
+When you learned about `gdata`, it was already mentioned that
+`gdata` can handle `.xls` files that are on the internet. 
+`readxl` can't, at least not yet. The URL which you'll be working
+is already available in the sample code. You will import it
+once using `gdata` and once with the `readxl` package via a 
+workaround.
+
+```{r eval=FALSE}
+# Load the readxl and gdata package
+library(readxl)
+library(gdata)
+
+# Specification of url: url_xls
+url_xls <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/latitude.xls"
+
+# Import the .xls file with gdata: excel_gdata
+excel_gdata <- read.xls(url_xls)
+
+# Download file behind URL, name it local_latitude.xls
+local_latitude <- download.file(url_xls, "local_latitude.xls")
+
+# Import the local .xls file with readxl: excel_readxl
+excel_readxl <- read_excel("local_latitude.xls")
+```
+
+#### Downloading any file, secure or not
+
+In the previous exercise you've seen how you can read excel files
+on the web using the `read_excel` package by first downloading the 
+file with the `download.file()` function.
+
+There's more: with `download.file()` you can download any kind of 
+file from the web, using HTTP and HTTPS: images, executable files,
+but also `.RData` files. An `RData` file is very efficient format
+to store R data.
+
+You can load data from an `RData` file using the `load()` function,
+but this function does not accept a URL string as an argument.
+
+```{r eval=FALSE}
+# https URL to the wine RData file.
+url_rdata <- "https://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/wine.RData"
+
+# Download the wine file to your working directory
+download.file(url_rdata, "wine_local.RData")
+
+# Load the wine data into your workspace using load()
+load("wine_local.RData")
+
+# Print out the summary of the wine data
+summary(wine)
+```
+
+Another way to load remote `RData` files is to use `url()` function
+inside `load()`. However, this will not save the `RData` file
+to a local file.
+
+#### HTTP?httr!
+
+Downloading a file from the Internet means sending a GET request
+and receiving  the file you asked for. Internally, all the 
+previously discussed functions use a GET request to download files.
+
+`httr` provides a convenient function, `GET()` to execute this
+GET request. The result is a `response` object, that provides easy
+access to the status code, content-type and, of course, the actual
+content.
+
+You can extract the content from the request using `content()` 
+function. At the time of writing, there are three ways to retrieve
+this content: as a rawo object, as a character vector, or an
+R object, such a list. If you don't tell `content()` how to retrieve
+the content through the `as` argument, it'll try its best to figure
+out which type is most appropriate based on the content-type.
+
+```{r eval=FALSE}
+# Load the httr package
+library(httr)
+
+# Get the url, save response to resp
+url <- "http://www.example.com/"
+resp <- GET(url)
+
+# Print resp
+resp
+
+# Get the raw content of resp: raw_content
+raw_content <- content(resp, as = "raw")
+
+# Print the head of raw_content
+head(raw_content)
+```
+
+The raw content of the response doesn't make a lot of sense, does it?
+Luckily, the `content()` function by default, if you don't specify
+the `as` argument, figures out what type of data you're dealing 
+with and parses it for you.
+
+Web content does not limit itself to HTML pages and files stored
+on remote servers such as DataCamp's Amazon S3 instances. There
+are may other data formats out there. A very common one is JSON.
+This format is very often used by so-called Web APIs, interfaces
+to web servers with which you as client can communicate to get or
+store information in more complicated ways.
+
+```{r eval=FALSE}
+# httr is already loaded
+
+# Get the url
+url <- "https://www.omdbapi.com/?t=Annie+Hall&y=&plot=short&r=json"
+resp <- GET(url)
+
+# Print resp
+resp
+
+# Print content of resp as text
+content(resp, as="text")
+
+# Print content of resp
+content(resp)
+```
+
+The fact that `httr` converts the JSON response body automatically
+to an R list is very convenient.
+
+### Importing data from the web
+
+Importing data from the web is one thing; actually being able 
+to extract useful information is another. Learn more about the JSON
+format to get one step closer to web domination.
+
+#### From JSON to R
+
+In the simplest setting, `fromJSON()` can convert character strings
+that represent JSON data into a nicely structured R list.
+
+```{r eval=FALSE}
+# Load the jsonlite package
+library(jsonlite)
+
+# wine_json is a JSON
+wine_json <- '{"name":"Chateau Migraine", "year":1997, "alcohol_pct":12.4, "color":"red", "awarded":false}'
+
+# Convert wine_json into a list: wine
+wine <- fromJSON(wine_json)
+
+# Print structure of wine
+str(wine)
+```
+
+#### Quandl API
+
+`fromJSON()` also works if you pass a URL as a character string or the
+path to a local file that contains JSON data. Let's try this out on
+the Quandl API, where you can fetch all sorts of financial and 
+economical data.
+
+```{r eval=FALSE}
+# jsonlite is preloaded
+
+# Definition of quandl_url
+quandl_url <- "http://www.quandl.com/api/v1/datasets/IWS/INTERNET_INDIA.json?auth_token=i83asDsiWUUyfoypkgMz"
+
+# Import Quandl data: quandl_data
+quandl_data <- fromJSON(quandl_url)
+
+# Print structure of quandl_data
+str(quandl_data)
+```
+You successfully imported JSON data directly from the web. 
+If you have a close look at the structure of `quandl_data`, 
+you'll see that the data element is a matrix.
+
+#### OMDb API
+
+You saw how easy it is to interact with an API once you know how to 
+formulate requests. You also saw how to fetch all information on
+Rain Man from OMDb. Simply performa `GET()` call, and next ask for
+the contents with the `content()` function. This `content()` function,
+which is part of the `httr` package, uses `jsonlite` behind the scenes
+to import the JSON data into R.
+
+However, by now you also know that `jsonlite` can handle URLs itself
+Simply passing the request URL to `fromJSON()` will get your data
+into R. 
+
+```{r eval=FALSE}
+# The package jsonlite is already loaded
+
+# Definition of the URLs
+url_sw4 <- "http://www.omdbapi.com/?i=tt0076759&r=json"
+url_sw3 <- "http://www.omdbapi.com/?i=tt0121766&r=json"
+
+# Import two URLs with fromJSON(): sw4 and sw3
+sw4 <- fromJSON(url_sw4)
+sw3 <- fromJSON(url_sw3)
+
+# Print out the Title element of both lists
+sw4$Title
+sw3$Title
+
+
+# Is the release year of sw4 later than sw3?
+sw4$Year > sw3$Year
+```
+
+#### JSON practice
+
+JSON is built on two structures: objects and arrays.
+
+```{r}
+# jsonlite load
+library(jsonlite)
+# Challenge 1
+json1 <- '[1, 2, 3, 4, 5, 6]'
+fromJSON(json1)
+
+# Challenge 2
+json2 <- '{"a": [1, 2, 3], "b": [4, 5, 6]}'
+fromJSON(json2)
+
+# jsonlite is already loaded
+
+# Challenge 1
+json1 <- '[[1, 2], [3, 4]]'
+fromJSON(json1)
+
+# Challenge 2
+json2 <- '[{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]'
+fromJSON(json2)
+```
+
+#### toJSON()
+
+Apart from converting JSON to R with `fromJSON()`, you can also use
+`toJSON()` to convert R data to a JSON format. In its most basic
+use, you simply pass this function an R object to convert to a JSON.
+The result is an R object of the class `json`, which is basically
+a character string representing that JSON.
+
+```{r eval=FALSE}
+# jsonlite is already loaded
+
+# URL pointing to the .csv file
+url_csv <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/water.csv"
+
+# Import the .csv file located at url_csv
+water <- read.csv(url_csv, stringsAsFactors = FALSE)
+
+# Convert the data file according to the requirements
+water_json <- toJSON(water)
+   
+# Print out water_json
+water_json
+```
+
+As you can see, the JSON you printed out isn't easy to read. 
+In the next exercise, you will print out some more JSONs, and
+explore ways to prettify or minify the output.
+
+#### Minify and prettify
+
+JSONs can come in different formats. Take these two JSONs, that
+are in fact exactly the same: the first one is in a minified format,
+the second one is in a pretty format with indentation, whitespace
+and new lines:
+
+```
+# Mini
+{"a":1,"b":2,"c":{"x":5,"y":6}}
+
+# Pretty
+{
+  "a": 1,
+  "b": 2,
+  "c": {
+    "x": 5,
+    "y": 6
+  }
+}
+```
+
+Unless you're a computer, you surely prefer the second version.
+However, the standard form that `toJSON()` returns, is the minified
+version, as it is more concise. You can adapt this behavior by
+setting the `pretty` argument inside `toJSON()` to `TRUE`. If
+you already have a JSON string, you can use `prettify()` or
+`minify()` to make the JSON pretty or as concise as possible.
+
+```{r eval=FALSE}
+# jsonlite is already loaded
+
+# Convert mtcars to a pretty JSON: pretty_json
+pretty_json <- toJSON(mtcars, pretty = TRUE)
+
+# Print pretty_json
+pretty_json
+
+# Minify pretty_json: mini_json
+mini_json <- minify(pretty_json)
+
+# Print mini_json
+mini_json
+```
 
 ### Importing data from statistical software
+
+Next to R, there are also other commonly used statistical 
+software packages: SAS, STATA and SPSS. Each of them has their
+own file format. Learn how to use the haven and foreign packages 
+to get them into R with remarkable ease!
+
+#### Import SAS data with haven
+
+`haven` is an extremely easy-to-use package to import data from
+threes software packages: SAS, STATA and SPSS. Depending on the
+software, you use different functions:
+
+- SAS: `read_sas()`
+- STATA: `read_dta()` (or `read_stata()`, which are identical)
+- SPSS: `read_sav()` or `read_por()`, depending of the file type.
+
+All these functions take one key argument: the path to your local 
+file. In fact, you can even pass a URL; `haven` will then automatically
+download the file for you before importing.
+
+```{r}
+# Load the haven package
+library(haven)
+
+# Definition of the URL
+url_sales <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/sales.sas7bdat"
+
+# Import sales.sas7bdat: sales
+sales <- read_sas(url_sales)
+
+# Display the structure of sales
+str(sales)
+```
+
+#### Import STATA data with haven
+
+#### What does the graphic tell?
+
+#### Import SPSS data with haven
+
+#### Factorize, round two
+
+#### Import STATA data with foreign
+
+#### Do you know your data?
+
+#### Import SPSS data with foreign
+
+#### Excursion: Correlation
+
+#### Import SPSS data with foreign

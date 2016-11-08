@@ -1,0 +1,431 @@
+---
+title: "Cleaning Data in R"
+author: "GT"
+date: "November 8, 2016"
+output: html_document
+---
+
+### Introduction and exploring raw data
+
+This chapter will give you an overview of the process of data cleaning
+with R, then walk you through the basics of exploring raw data.
+
+#### The data cleaning process
+
+1. Exploring raw data
+2. Tidying data
+3. Preparing data for analysis
+4. Putting it all together
+
+No one likes missing data, but it is dangerous to assume that 
+it can simply be removed or replaced. Sometimes missing data tells us
+something important about whatever it is that we're measuring 
+(i.e. The value of the variable that is missing may be related to the
+reason it is missing). 
+Such data is called Missing not at Random, or MNAR.
+
+#### Here's what messy data look like
+
+In the final chapter of this course, you will be presented with 
+a messy, real-world dataset containing an entire year's worth of 
+weather data from Boston, USA. Among other things, you'll be presented
+with variables that contain column names, column names that should be
+values, numbers coded as character strings, and values that are 
+missing, extreme, and downright erroneous!
+
+```{r eval=FALSE}
+# View the first 6 rows of data
+head(weather)
+
+# View the last 6 rows of data
+tail(weather)
+
+# View a condensed summary of the data
+str(weather)
+```
+
+```
+> # View the first 6 rows of data
+> head(weather)
+  X year month           measure X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14
+1 1 2014    12  Max.TemperatureF 64 42 51 43 42 45 38 29 49  48  39  39  42  45
+2 2 2014    12 Mean.TemperatureF 52 38 44 37 34 42 30 24 39  43  36  35  37  39
+3 3 2014    12  Min.TemperatureF 39 33 37 30 26 38 21 18 29  38  32  31  32  33
+4 4 2014    12    Max.Dew.PointF 46 40 49 24 37 45 36 28 49  45  37  28  28  29
+5 5 2014    12    MeanDew.PointF 40 27 42 21 25 40 20 16 41  39  31  27  26  27
+6 6 2014    12     Min.DewpointF 26 17 24 13 12 36 -3  3 28  37  27  25  24  25
+  X15 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
+1  42  44  49  44  37  36  36  44  47  46  59  50  52  52  41  30  30
+2  37  40  45  40  33  32  33  39  45  44  52  44  45  46  36  26  25
+3  32  35  41  36  29  27  30  33  42  41  44  37  38  40  30  22  20
+4  33  42  46  34  25  30  30  39  45  46  58  31  34  42  26  10   8
+5  29  36  41  30  22  24  27  34  42  44  43  29  31  35  20   4   5
+6  27  30  32  26  20  20  25  25  37  41  29  28  29  27  10  -6   1
+> 
+> # View the last 6 rows of data
+> tail(weather)
+      X year month            measure   X1   X2   X3   X4   X5   X6   X7   X8
+281 281 2015    12 Mean.Wind.SpeedMPH    6 <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+282 282 2015    12  Max.Gust.SpeedMPH   17 <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+283 283 2015    12    PrecipitationIn 0.14 <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+284 284 2015    12         CloudCover    7 <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+285 285 2015    12             Events Rain <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+286 286 2015    12     WindDirDegrees  109 <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+      X9  X10  X11  X12  X13  X14  X15  X16  X17  X18  X19  X20  X21  X22  X23
+281 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+282 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+283 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+284 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+285 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+286 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+     X24  X25  X26  X27  X28  X29  X30  X31
+281 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+282 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+283 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+284 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+285 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+286 <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA>
+> 
+> # View a condensed summary of the data
+> str(weather)
+'data.frame':	286 obs. of  35 variables:
+ $ X      : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ year   : int  2014 2014 2014 2014 2014 2014 2014 2014 2014 2014 ...
+ $ month  : int  12 12 12 12 12 12 12 12 12 12 ...
+ $ measure: chr  "Max.TemperatureF" "Mean.TemperatureF" "Min.TemperatureF" "Max.Dew.PointF" ...
+ $ X1     : chr  "64" "52" "39" "46" ...
+ $ X2     : chr  "42" "38" "33" "40" ...
+ $ X3     : chr  "51" "44" "37" "49" ...
+ $ X4     : chr  "43" "37" "30" "24" ...
+ $ X5     : chr  "42" "34" "26" "37" ...
+ $ X6     : chr  "45" "42" "38" "45" ...
+ $ X7     : chr  "38" "30" "21" "36" ...
+ $ X8     : chr  "29" "24" "18" "28" ...
+ $ X9     : chr  "49" "39" "29" "49" ...
+ $ X10    : chr  "48" "43" "38" "45" ...
+ $ X11    : chr  "39" "36" "32" "37" ...
+ $ X12    : chr  "39" "35" "31" "28" ...
+ $ X13    : chr  "42" "37" "32" "28" ...
+ $ X14    : chr  "45" "39" "33" "29" ...
+ $ X15    : chr  "42" "37" "32" "33" ...
+ $ X16    : chr  "44" "40" "35" "42" ...
+ $ X17    : chr  "49" "45" "41" "46" ...
+ $ X18    : chr  "44" "40" "36" "34" ...
+ $ X19    : chr  "37" "33" "29" "25" ...
+ $ X20    : chr  "36" "32" "27" "30" ...
+ $ X21    : chr  "36" "33" "30" "30" ...
+ $ X22    : chr  "44" "39" "33" "39" ...
+ $ X23    : chr  "47" "45" "42" "45" ...
+ $ X24    : chr  "46" "44" "41" "46" ...
+ $ X25    : chr  "59" "52" "44" "58" ...
+ $ X26    : chr  "50" "44" "37" "31" ...
+ $ X27    : chr  "52" "45" "38" "34" ...
+ $ X28    : chr  "52" "46" "40" "42" ...
+ $ X29    : chr  "41" "36" "30" "26" ...
+ $ X30    : chr  "30" "26" "22" "10" ...
+ $ X31    : chr  "30" "25" "20" "8" ...
+> 
+```
+
+You may have already noticed messy aspects of the dataset. 
+If not, don't worry! We'll get to that soon.
+
+#### Here's what clean data look like
+
+In this course, you will acquire many new tools in your data cleaning
+toolbox for whipping the weather data into shape!
+
+```{r eval=FALSE}
+# View the first 6 rows of data
+head(weather_clean)
+
+# View the last 6 rows of data
+tail(weather_clean)
+
+# View a condensed summary of the data
+str(weather_clean)
+```
+
+```
+> # View the first 6 rows of data
+> head(weather_clean)
+        date    events cloud_cover max_dew_point_f max_gust_speed_mph
+1 2014-12-01      Rain           6              46                 29
+2 2014-12-02 Rain-Snow           7              40                 29
+3 2014-12-03      Rain           8              49                 38
+4 2014-12-04      None           3              24                 33
+5 2014-12-05      Rain           5              37                 26
+6 2014-12-06      Rain           8              45                 25
+  max_humidity max_sea_level_pressure_in max_temperature_f max_visibility_miles
+1           74                     30.45                64                   10
+2           92                     30.71                42                   10
+3          100                     30.40                51                   10
+4           69                     30.56                43                   10
+5           85                     30.68                42                   10
+6          100                     30.42                45                   10
+  max_wind_speed_mph mean_humidity mean_sea_level_pressure_in
+1                 22            63                      30.13
+2                 24            72                      30.59
+3                 29            79                      30.07
+4                 25            54                      30.33
+5                 22            66                      30.59
+6                 22            93                      30.24
+  mean_temperature_f mean_visibility_miles mean_wind_speed_mph mean_dew_point_f
+1                 52                    10                  13               40
+2                 38                     8                  15               27
+3                 44                     5                  12               42
+4                 37                    10                  12               21
+5                 34                    10                  10               25
+6                 42                     4                   8               40
+  min_dew_point_f min_humidity min_sea_level_pressure_in min_temperature_f
+1              26           52                     30.01                39
+2              17           51                     30.40                33
+3              24           57                     29.87                37
+4              13           39                     30.09                30
+5              12           47                     30.45                26
+6              36           85                     30.16                38
+  min_visibility_miles precipitation_in wind_dir_degrees
+1                   10             0.01              268
+2                    2             0.10               62
+3                    1             0.44              254
+4                   10             0.00              292
+5                    5             0.11               61
+6                    0             1.09              313
+> 
+> # View the last 6 rows of data
+> tail(weather_clean)
+          date events cloud_cover max_dew_point_f max_gust_speed_mph
+361 2015-11-26   None           6              49                 28
+362 2015-11-27   None           7              52                 32
+363 2015-11-28   Rain           8              50                 23
+364 2015-11-29   None           4              33                 20
+365 2015-11-30   None           6              26                 17
+366 2015-12-01   Rain           7              43                 17
+    max_humidity max_sea_level_pressure_in max_temperature_f
+361          100                     30.87                59
+362          100                     30.63                64
+363           93                     30.20                60
+364           79                     30.42                44
+365           75                     30.53                38
+366           96                     30.40                45
+    max_visibility_miles max_wind_speed_mph mean_humidity
+361                   10                 22            79
+362                   10                 26            78
+363                   10                 18            80
+364                   10                 16            58
+365                   10                 14            65
+366                   10                 15            83
+    mean_sea_level_pressure_in mean_temperature_f mean_visibility_miles
+361                      30.77                 49                     9
+362                      30.41                 56                     9
+363                      30.16                 51                     9
+364                      30.26                 38                    10
+365                      30.46                 33                    10
+366                      30.24                 39                     8
+    mean_wind_speed_mph mean_dew_point_f min_dew_point_f min_humidity
+361                  10               42              34           57
+362                  14               49              47           56
+363                  10               43              36           67
+364                  10               23              15           36
+365                   9               23              18           54
+366                   6               35              25           69
+    min_sea_level_pressure_in min_temperature_f min_visibility_miles
+361                     30.64                38                    5
+362                     30.15                48                    5
+363                     30.11                41                    4
+364                     30.19                32                   10
+365                     30.39                28                   10
+366                     30.01                32                    1
+    precipitation_in wind_dir_degrees
+361             0.00              180
+362             0.00              209
+363             0.21              358
+364             0.00              326
+365             0.00               65
+366             0.14              109
+> 
+> # View a condensed summary of the data
+> str(weather_clean)
+'data.frame':	366 obs. of  23 variables:
+ $ date                      : POSIXct, format: "2014-12-01" "2014-12-02" ...
+ $ events                    : chr  "Rain" "Rain-Snow" "Rain" "None" ...
+ $ cloud_cover               : num  6 7 8 3 5 8 6 8 8 8 ...
+ $ max_dew_point_f           : num  46 40 49 24 37 45 36 28 49 45 ...
+ $ max_gust_speed_mph        : num  29 29 38 33 26 25 32 28 52 29 ...
+ $ max_humidity              : num  74 92 100 69 85 100 92 92 100 100 ...
+ $ max_sea_level_pressure_in : num  30.4 30.7 30.4 30.6 30.7 ...
+ $ max_temperature_f         : num  64 42 51 43 42 45 38 29 49 48 ...
+ $ max_visibility_miles      : num  10 10 10 10 10 10 10 10 10 10 ...
+ $ max_wind_speed_mph        : num  22 24 29 25 22 22 25 21 38 23 ...
+ $ mean_humidity             : num  63 72 79 54 66 93 61 70 93 95 ...
+ $ mean_sea_level_pressure_in: num  30.1 30.6 30.1 30.3 30.6 ...
+ $ mean_temperature_f        : num  52 38 44 37 34 42 30 24 39 43 ...
+ $ mean_visibility_miles     : num  10 8 5 10 10 4 10 8 2 3 ...
+ $ mean_wind_speed_mph       : num  13 15 12 12 10 8 15 13 20 13 ...
+ $ mean_dew_point_f          : num  40 27 42 21 25 40 20 16 41 39 ...
+ $ min_dew_point_f           : num  26 17 24 13 12 36 -3 3 28 37 ...
+ $ min_humidity              : num  52 51 57 39 47 85 29 47 86 89 ...
+ $ min_sea_level_pressure_in : num  30 30.4 29.9 30.1 30.4 ...
+ $ min_temperature_f         : num  39 33 37 30 26 38 21 18 29 38 ...
+ $ min_visibility_miles      : num  10 2 1 10 5 0 5 2 1 1 ...
+ $ precipitation_in          : num  0.01 0.1 0.44 0 0.11 1.09 0.13 0.03 2.9 0.28 ...
+ $ wind_dir_degrees          : num  268 62 254 292 61 313 350 354 38 357 ...
+> 
+```
+
+Doesn't this dataset already look nicer than in the previous exercise?
+
+#### Getting a feel for your data
+
+The first thing to do when you get your hands on a new dataset is to
+understand its structure. There are several ways to go about this
+in R, each of which may reveal different issues with your data that
+require attention.
+
+In this course, we are only concerned with data that can be
+expressed in table format (i.e. two dimensions, rows and columns).
+As you may recall from earlier courses, tables in R often have
+the type `data.frame`. You can check the `class` of any object
+in R with the `class()` function. 
+
+Once you know that you are dealing with tabular data, you may also
+wanto to get a quick feel for the contents of your data. Before
+printing the entire dataset to the console, it's probabily worth
+knowing how many rows and columns there are. The `dim()` command
+tells you this.
+
+Loaded a dataset called bmi into your workspace. 
+The data, which give the (age standardized) mean body mass 
+index (BMI) among males in each country for the years 
+1980-2008
+
+```{r}
+# Load bmi.csv
+bmi <- read.csv("bmi.csv")
+
+# Check the class of bmi
+class(bmi)
+
+# Check the dimensions of bmi
+dim(bmi)
+
+# View the column names of bmi
+names(bmi)
+```
+
+#### Viewing the structure of your data
+
+Since `bmi` doesn't have a huge number of columns, you can view
+a quick snapshot of your data using `str()` command. In addition
+to the class and dimensions of your _entire dataset_, `str()` will
+tell you the class of _each variable_ and give you a preview of 
+its contents.
+
+Although we won't go into detail on the `dplyr` package in this lesson,
+the `glimpse()` function from `dplyr` is a slightly cleaner 
+alternative to `str()`. `str()` and `glimpse()` give you a preview 
+of your data, which may reveal issues with the way columns are labelled,
+how variables are encoded, etc.
+
+You can use the `summary()` command to get a better feel for 
+how your data are distributed, which may reveal unusual or extreme
+values, unexpected missing data, etc. For numeric variables, this
+means looking at means, quartiles (including median), and extreme
+values. For character or factor variables, you may be curious
+about the number of times each value appears in the data (i.e. counts).
+
+```{r}
+# Check the structure of bmi
+str(bmi)
+
+# Load dplyr
+library(dplyr)
+
+# Check the structure of bmi, the dplyr way
+glimpse(bmi)
+
+# View a summary of bmi
+summary(bmi)
+```
+
+#### Looking at your data
+
+You can look at all the summaries you want, but at the end of the
+day, there is no substitute for looking at your data, either in
+raw table form or by plotting it.
+
+The most basic way to look at your data in R is by printing it
+to the console. As you may know from experience, the `print()`
+command is not even necessary; you can just type the name of
+the object. The downside to this option is that R will attempt 
+to print the entire dataset, which can be a nuisance if the
+dataset is too large.
+
+One way around this is to use the `head()` and `tail()` commands,
+which only display the first and last 6 rows of data, respectively.
+You can view more (or fewer) rows by providing as a second 
+argument to the function the number of rows you wish to view.
+These functions provide a useful method for quickly getting a sense
+of your data without overly cluttering the console.
+
+```{r}
+# View the first 6 rows
+head(bmi)
+
+# View the first 15 rows
+head(bmi, n=15)
+
+# View the last 6 rows
+tail(bmi)
+
+# View the last 10 rows
+tail(bmi, n=10)
+```
+
+#### Visualizing your data
+
+There are many ways to visualize data. Since this is not a course
+about data visualization, we will only touch on two types of plots
+that may be useful for quickly identifying extreme or suspicious values
+in your data: histograms and scatter plots.
+
+A histogram, created with the `hist()` function, takes a vector 
+(i.e. column) of data, breaks it up to intervals, then plots as a 
+vertical bar the number of instances within each interval.
+
+A scatter plot, created with the `plot()` function, takes two
+vectors of data and plots them as a series of `(x, y)` coordinates
+on a two-dimensional plane.
+
+ 
+ ```{r}
+# Histogram of BMIs from 2008
+hist(bmi$Y2008)
+
+# Scatter plot comparing BMIs from 1980 to those from 2008
+plot(bmi$Y1980, bmi$Y2008)
+```
+
+### Tidying data
+
+#### Principles of tidy data
+
+#### Common symptoms of messy data
+
+#### What kind of messy are the BMI data?
+
+#### Gathering columns Into key-value pairs
+
+#### Spreading key-value pairs into columns
+
+#### Function in tidyr
+
+#### Separating columns
+
+#### Uniting columns
+
+#### Column headers are values, not variable names
+
+#### Variables are stored in both rows and columns
+
+#### Multiple values are stored in one column

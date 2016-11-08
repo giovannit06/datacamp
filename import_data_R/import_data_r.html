@@ -966,16 +966,358 @@ fromJSON(json2)</code></pre>
 ## 
 ## $b
 ## [1] 4 5 6</code></pre>
+<pre class="r"><code># jsonlite is already loaded
+
+# Challenge 1
+json1 &lt;- '[[1, 2], [3, 4]]'
+fromJSON(json1)</code></pre>
+<pre><code>##      [,1] [,2]
+## [1,]    1    2
+## [2,]    3    4</code></pre>
+<pre class="r"><code># Challenge 2
+json2 &lt;- '[{&quot;a&quot;: 1, &quot;b&quot;: 2}, {&quot;a&quot;: 3, &quot;b&quot;: 4}, {&quot;a&quot;: 5, &quot;b&quot;: 6}]'
+fromJSON(json2)</code></pre>
+<pre><code>##   a b
+## 1 1 2
+## 2 3 4
+## 3 5 6</code></pre>
 </div>
 <div id="tojson" class="section level4">
 <h4>toJSON()</h4>
+<p>Apart from converting JSON to R with <code>fromJSON()</code>, you can also use <code>toJSON()</code> to convert R data to a JSON format. In its most basic use, you simply pass this function an R object to convert to a JSON. The result is an R object of the class <code>json</code>, which is basically a character string representing that JSON.</p>
+<pre class="r"><code># jsonlite is already loaded
+
+# URL pointing to the .csv file
+url_csv &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/water.csv&quot;
+
+# Import the .csv file located at url_csv
+water &lt;- read.csv(url_csv, stringsAsFactors = FALSE)
+
+# Convert the data file according to the requirements
+water_json &lt;- toJSON(water)
+   
+# Print out water_json
+water_json</code></pre>
+<p>As you can see, the JSON you printed out isn’t easy to read. In the next exercise, you will print out some more JSONs, and explore ways to prettify or minify the output.</p>
 </div>
 <div id="minify-and-prettify" class="section level4">
 <h4>Minify and prettify</h4>
+<p>JSONs can come in different formats. Take these two JSONs, that are in fact exactly the same: the first one is in a minified format, the second one is in a pretty format with indentation, whitespace and new lines:</p>
+<pre><code># Mini
+{&quot;a&quot;:1,&quot;b&quot;:2,&quot;c&quot;:{&quot;x&quot;:5,&quot;y&quot;:6}}
+
+# Pretty
+{
+  &quot;a&quot;: 1,
+  &quot;b&quot;: 2,
+  &quot;c&quot;: {
+    &quot;x&quot;: 5,
+    &quot;y&quot;: 6
+  }
+}</code></pre>
+<p>Unless you’re a computer, you surely prefer the second version. However, the standard form that <code>toJSON()</code> returns, is the minified version, as it is more concise. You can adapt this behavior by setting the <code>pretty</code> argument inside <code>toJSON()</code> to <code>TRUE</code>. If you already have a JSON string, you can use <code>prettify()</code> or <code>minify()</code> to make the JSON pretty or as concise as possible.</p>
+<pre class="r"><code># jsonlite is already loaded
+
+# Convert mtcars to a pretty JSON: pretty_json
+pretty_json &lt;- toJSON(mtcars, pretty = TRUE)
+
+# Print pretty_json
+pretty_json
+
+# Minify pretty_json: mini_json
+mini_json &lt;- minify(pretty_json)
+
+# Print mini_json
+mini_json</code></pre>
 </div>
 </div>
 <div id="importing-data-from-statistical-software" class="section level3">
 <h3>Importing data from statistical software</h3>
+<p>Next to R, there are also other commonly used statistical software packages: SAS, STATA and SPSS. Each of them has their own file format. Learn how to use the haven and foreign packages to get them into R with remarkable ease!</p>
+<div id="import-sas-data-with-haven" class="section level4">
+<h4>Import SAS data with haven</h4>
+<p><code>haven</code> is an extremely easy-to-use package to import data from threes software packages: SAS, STATA and SPSS. Depending on the software, you use different functions:</p>
+<ul>
+<li>SAS: <code>read_sas()</code></li>
+<li>STATA: <code>read_dta()</code> (or <code>read_stata()</code>, which are identical)</li>
+<li>SPSS: <code>read_sav()</code> or <code>read_por()</code>, depending of the file type.</li>
+</ul>
+<p>All these functions take one key argument: the path to your local file. In fact, you can even pass a URL; <code>haven</code> will then automatically download the file for you before importing.</p>
+<pre class="r"><code># Load the haven package
+library(haven)
+
+# Definition of the URL
+url_sales &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/sales.sas7bdat&quot;
+
+# Import sales.sas7bdat: sales
+sales &lt;- read_sas(url_sales)
+
+# Display the structure of sales
+str(sales)</code></pre>
+<pre><code>## Classes 'tbl_df', 'tbl' and 'data.frame':    431 obs. of  4 variables:
+##  $ purchase: num  0 0 1 1 0 0 0 0 0 0 ...
+##  $ age     : num  41 47 41 39 32 32 33 45 43 40 ...
+##  $ gender  : chr  &quot;Female&quot; &quot;Female&quot; &quot;Female&quot; &quot;Female&quot; ...
+##  $ income  : chr  &quot;Low&quot; &quot;Low&quot; &quot;Low&quot; &quot;Low&quot; ...
+##  - attr(*, &quot;label&quot;)= chr &quot;SALES&quot;</code></pre>
+</div>
+<div id="import-stata-data-with-haven" class="section level4">
+<h4>Import STATA data with haven</h4>
+<p>Next up are STATA data files; you can use <code>read_dta()</code> for these.</p>
+<p>When inspecting the result of the <code>read_dta</code> call, you will notice that one column will be imported as a <code>labelled</code> vector, an R equivalent for the common data structure in other statistical environments. In order to effectively continue working on the data in R, it’s best to change this data into standard R class. To convert a variable of the class <code>labelled</code> to a factor, you’ll need <code>haven</code>’s <code>as_factor()</code> function.</p>
+<pre class="r"><code># haven is already loaded
+
+# Import the data from the URL: sugar
+sugar &lt;- read_dta(&quot;http://assets.datacamp.com/production/course_1478/datasets/trade.dta&quot;)
+
+# Structure of sugar
+str(sugar)</code></pre>
+<pre><code>## Classes 'tbl_df', 'tbl' and 'data.frame':    10 obs. of  5 variables:
+##  $ Date    :Class 'labelled'  atomic [1:10] 10 9 8 7 6 5 4 3 2 1
+##   .. ..- attr(*, &quot;label&quot;)= chr &quot;Date&quot;
+##   .. ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##   .. ..- attr(*, &quot;labels&quot;)= Named num [1:10] 1 2 3 4 5 6 7 8 9 10
+##   .. .. ..- attr(*, &quot;names&quot;)= chr [1:10] &quot;2004-12-31&quot; &quot;2005-12-31&quot; &quot;2006-12-31&quot; &quot;2007-12-31&quot; ...
+##  $ Import  : atomic  37664782 16316512 11082246 35677943 9879878 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Import&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Weight_I: atomic  54029106 21584365 14526089 55034932 14806865 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Weight_I&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Export  : atomic  5.45e+07 1.03e+08 3.79e+07 4.85e+07 7.15e+07 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Export&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Weight_E: atomic  9.34e+07 1.58e+08 8.80e+07 1.12e+08 1.32e+08 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Weight_E&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  - attr(*, &quot;label&quot;)= chr &quot;Written by R.&quot;</code></pre>
+<pre class="r"><code># Convert values in Date column to dates
+sugar$Date &lt;- as.Date(as_factor(sugar$Date))
+
+# Structure of sugar again
+str(sugar)</code></pre>
+<pre><code>## Classes 'tbl_df', 'tbl' and 'data.frame':    10 obs. of  5 variables:
+##  $ Date    : Date, format: &quot;2013-12-31&quot; &quot;2012-12-31&quot; ...
+##  $ Import  : atomic  37664782 16316512 11082246 35677943 9879878 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Import&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Weight_I: atomic  54029106 21584365 14526089 55034932 14806865 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Weight_I&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Export  : atomic  5.45e+07 1.03e+08 3.79e+07 4.85e+07 7.15e+07 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Export&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  $ Weight_E: atomic  9.34e+07 1.58e+08 8.80e+07 1.12e+08 1.32e+08 ...
+##   ..- attr(*, &quot;label&quot;)= chr &quot;Weight_E&quot;
+##   ..- attr(*, &quot;format.stata&quot;)= chr &quot;%9.0g&quot;
+##  - attr(*, &quot;label&quot;)= chr &quot;Written by R.&quot;</code></pre>
+</div>
+<div id="what-does-the-graphic-tell" class="section level4">
+<h4>What does the graphic tell?</h4>
+<p>A plot can be very useful to explore the relationship between two variables. If you pass the <code>plot()</code> function two arguments, the first one will be on the x-axis, and the second one will be on the y-axis.</p>
+<p>After you’ve imported the data frame, you should plot two of its varibles, <code>Import</code> against <code>Weight_I</code>, and describe their relationship!</p>
+<pre class="r"><code>plot(sugar$Import, sugar$Weight_I)</code></pre>
+<p><img src="data:image/png;base64,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o0LqEn/3aHEXqeNhsWFV8WqD1b3dpWn3zsnlgUGoEVAE41cdUtc22vP92PzmycnZUzanKvdyz8SSb3/dS51jC65L3mXQGz+K3dRktG35OKn1oWo7qZP0/fgFnrILaNUfOie22vetxE/eGZAcptv/eg1W937A1ZiwNTw2EJAVP9xvYGXP0Se+mPywUuTJg3es3H7iY57XqlXiSiHemptHtW8/4o5NkQr1iy9445hdWm+37883ehtP79p+xObM1yRrnz5+UDSePUac9WZySXYB9T47f8dWnfe6pe56oOvvPHD78q5jblrVYDNRG2YMqOw6xOFRQHEhoCg8y6X9s7yr3++FT/v8PtBsBBQF4vmxY3+dnLxH+l6WaxFQ5BMBRYH4RNoncZ589VDpySzXIqDIJwKKQrGzNO4vtd7q58dIvbP98BABRT4RUBSKp2NveLdKfHXS47kahIDCJQKKgnH/dsnPE7X/Zc7GIKBwiYCicKz84YF9K3p8+4avcjfESy+9se07AVkioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoARAQUAIwIKAEYEFACMCCgAGBFQADAioABgREABwIiAAoDR/webqhA6HmWRrQAAAABJRU5ErkJggg==" title alt width="672" /></p>
+<p>You can spot an increasing trend among the data points. This of course makes sense: the more sugar is traded, the higher the weight that’s traded.</p>
+</div>
+<div id="import-spss-data-with-haven" class="section level4">
+<h4>Import SPSS data with haven</h4>
+<p>The <code>haven</code> package can also import data files from SPSS. Again, importing the data is pretty straighforward. Depending on the SPSS data file you’re working with, you’ll need either <code>read_sav()</code> for <code>.sav</code> files or <code>read_por()</code> for <code>.por</code> files.</p>
+<pre class="r"><code># haven is already loaded
+
+# Import person.sav: traits
+traits &lt;- read_sav(&quot;person.sav&quot;)
+
+# Summarize traits
+summary(traits)
+
+# Print out a subset
+subset(traits,Extroversion &gt; 40 &amp; Agreeableness &gt; 40)</code></pre>
+</div>
+<div id="factorize-round-two" class="section level4">
+<h4>Factorize, round two</h4>
+<p>In the last exercise you learned how to import a data file using the command <code>read_sav()</code>. With SPSS data files, it can also happen that some of the variables you import have the <code>labelled</code> class. This is done to keep all the labelling information that was originally present in the <code>.sav</code> and <code>.por</code> files. It’s advised to coerce (or change) these variables to factors or other standard R classes.</p>
+<pre class="r"><code># haven is already loaded
+
+# Import SPSS data from the URL: work
+work &lt;- read_sav(&quot;employee.sav&quot;)
+
+# Display summary of work$GENDER
+summary(work$GENDER)
+
+
+# Convert work$GENDER to a factor
+work$GENDER &lt;- as_factor(work$GENDER)
+
+
+# Display summary of work$GENDER again
+summary(work$GENDER)</code></pre>
+</div>
+<div id="import-stata-data-with-foreign" class="section level4">
+<h4>Import STATA data with foreign</h4>
+<p>The <code>foreign</code> package offers a simple function to import and read <em>STATA</em> data: <code>read.dta()</code>.</p>
+<pre class="r"><code># Load the foreign package
+library(foreign)
+
+# Import florida.dta and name the resulting data frame florida
+florida &lt;- read.dta(&quot;florida.dta&quot;)
+
+# Check tail() of florida
+tail(florida)</code></pre>
+<p>Data can be very diverse, going from character vectors to categorical variables, dates and more. It’s in these case that the additional arguments of <code>read.dta()</code> will come in handy.</p>
+<p>The arguments you will use most often are <code>convert.dates</code>, <code>convert.factors</code>, <code>missing.type</code> and <code>convert.underscore</code>. Their meaining is pretty straightforward. It’s all about correctly converting STATA data to standard R data structures.</p>
+<pre class="r"><code>library(foreign)
+
+# Specify the file path using file.path(): path
+path &lt;- file.path(&quot;worldbank&quot;, &quot;edequality.dta&quot;)
+url &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/edequality.dta&quot;
+
+# Create and print structure of edu_equal_1
+edu_equal_1 &lt;- read.dta(url)
+str(edu_equal_1)</code></pre>
+<pre><code>## 'data.frame':    12214 obs. of  27 variables:
+##  $ hhid              : num  1 1 1 2 2 3 4 4 5 6 ...
+##  $ hhweight          : num  627 627 627 627 627 ...
+##  $ location          : Factor w/ 2 levels &quot;urban location&quot;,..: 1 1 1 1 1 2 2 2 1 1 ...
+##  $ region            : Factor w/ 9 levels &quot;Sofia city&quot;,&quot;Bourgass&quot;,..: 8 8 8 9 9 4 4 4 8 8 ...
+##  $ ethnicity_head    : Factor w/ 4 levels &quot;Bulgaria&quot;,&quot;Turks&quot;,..: 2 2 2 1 1 1 1 1 1 1 ...
+##  $ age               : num  37 11 8 73 70 75 79 80 82 83 ...
+##  $ gender            : Factor w/ 2 levels &quot;male&quot;,&quot;female&quot;: 2 2 1 1 2 1 1 2 2 2 ...
+##  $ relation          : Factor w/ 9 levels &quot;head                      &quot;,..: 1 3 3 1 2 1 1 2 1 1 ...
+##  $ literate          : Factor w/ 2 levels &quot;no&quot;,&quot;yes&quot;: 1 2 2 2 2 2 2 2 2 2 ...
+##  $ income_mnt        : num  13.3 13.3 13.3 142.5 142.5 ...
+##  $ income            : num  160 160 160 1710 1710 ...
+##  $ aggregate         : num  1042 1042 1042 3271 3271 ...
+##  $ aggr_ind_annual   : num  347 347 347 1635 1635 ...
+##  $ educ_completed    : int  2 4 4 4 3 3 3 3 4 4 ...
+##  $ grade_complete    : num  4 3 0 3 4 4 4 4 5 5 ...
+##  $ grade_all         : num  4 11 8 11 8 8 8 8 13 13 ...
+##  $ unemployed        : int  2 1 1 1 1 1 1 1 1 1 ...
+##  $ reason_OLF        : int  NA NA NA 3 3 3 9 9 3 3 ...
+##  $ sector            : int  NA NA NA NA NA NA 1 1 NA NA ...
+##  $ occupation        : int  NA NA NA NA NA NA 5 5 NA NA ...
+##  $ earn_mont         : num  0 0 0 0 0 0 20 20 0 0 ...
+##  $ earn_ann          : num  0 0 0 0 0 0 240 240 0 0 ...
+##  $ hours_week        : num  NA NA NA NA NA NA 30 35 NA NA ...
+##  $ hours_mnt         : num  NA NA NA NA NA ...
+##  $ fulltime          : int  NA NA NA NA NA NA 1 1 NA NA ...
+##  $ hhexp             : num  100 100 100 343 343 ...
+##  $ legacy_pension_amt: num  NA NA NA NA NA NA NA NA NA NA ...
+##  - attr(*, &quot;datalabel&quot;)= chr &quot;&quot;
+##  - attr(*, &quot;time.stamp&quot;)= chr &quot;&quot;
+##  - attr(*, &quot;formats&quot;)= chr  &quot;%9.0g&quot; &quot;%9.0g&quot; &quot;%9.0g&quot; &quot;%9.0g&quot; ...
+##  - attr(*, &quot;types&quot;)= int  100 100 108 108 108 100 108 108 108 100 ...
+##  - attr(*, &quot;val.labels&quot;)= chr  &quot;&quot; &quot;&quot; &quot;location&quot; &quot;region&quot; ...
+##  - attr(*, &quot;var.labels&quot;)= chr  &quot;hhid&quot; &quot;hhweight&quot; &quot;location&quot; &quot;region&quot; ...
+##  - attr(*, &quot;expansion.fields&quot;)=List of 12
+##   ..$ : chr  &quot;_dta&quot; &quot;_svy_su1&quot; &quot;cluster&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;_svy_strata1&quot; &quot;strata&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;_svy_stages&quot; &quot;1&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;_svy_version&quot; &quot;2&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;__XijVarLabcons&quot; &quot;(sum) cons&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;ReS_Xij&quot; &quot;cons&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;ReS_str&quot; &quot;0&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;ReS_j&quot; &quot;group&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;ReS_ver&quot; &quot;v.2&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;ReS_i&quot; &quot;hhid dur&quot;
+##   ..$ : chr  &quot;_dta&quot; &quot;note1&quot; &quot;variables g1pc, g2pc, g3pc, g4pc, g5pc, g7pc, g8pc, g9pc, g10pc, g11pc, g12pc,  gall, health, rent, durables were adjusted by r&quot;| __truncated__
+##   ..$ : chr  &quot;_dta&quot; &quot;note0&quot; &quot;1&quot;
+##  - attr(*, &quot;version&quot;)= int 7
+##  - attr(*, &quot;label.table&quot;)=List of 12
+##   ..$ location: Named int  1 2
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;urban location&quot; &quot;rural location&quot;
+##   ..$ region  : Named int  1 2 3 4 5 6 7 8 9
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;Sofia city&quot; &quot;Bourgass&quot; &quot;Varna&quot; &quot;Lovetch&quot; ...
+##   ..$ ethnic  : Named int  1 2 3 4
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;Bulgaria&quot; &quot;Turks&quot; &quot;Roma&quot; &quot;Other&quot;
+##   ..$ s2_q2   : Named int  1 2
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;male&quot; &quot;female&quot;
+##   ..$ s2_q3   : Named int  1 2 3 4 5 6 7 8 9
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;head                      &quot; &quot;spouse/partner            &quot; &quot;child                     &quot; &quot;son/daughter-in-law       &quot; ...
+##   ..$ lit     : Named int  1 2
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;no&quot; &quot;yes&quot;
+##   ..$         : Named int  1 2 3 4
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;never attanded&quot; &quot;primary&quot; &quot;secondary&quot; &quot;postsecondary&quot;
+##   ..$         : Named int  1 2
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;Not unemployed&quot; &quot;Unemployed&quot;
+##   ..$         : Named int  1 2 3 4 5 6 7 8 9 10
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;student&quot; &quot;housewife/childcare&quot; &quot;in retirement&quot; &quot;illness, disability&quot; ...
+##   ..$         : Named int  1 2 3 4 5 6 7 8 9 10
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;agriculture&quot; &quot;mining&quot; &quot;manufacturing&quot; &quot;utilities&quot; ...
+##   ..$         : Named int  1 2 3 4 5
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;private company&quot; &quot;public works program&quot; &quot;government,public sector, army&quot; &quot;private individual&quot; ...
+##   ..$         : Named int  1 2
+##   .. ..- attr(*, &quot;names&quot;)= chr  &quot;no&quot; &quot;yes&quot;</code></pre>
+<p>For this data, the first version (where you simply specified the file path) will be most useful to work with.</p>
+</div>
+<div id="do-you-know-your-data" class="section level4">
+<h4>Do you know your data?</h4>
+<p>The previous exercise dealt about socio-economic indicators and access to education of different individuals.</p>
+<p>For example, you can ask yourself how many observations have an <code>age</code> higher than 40 adn are <code>literate</code>.</p>
+<p>You see that <code>age</code> is an integer, and <code>literate</code> is a factor, with levels “yes” and “no”. The following expression thus answers the question</p>
+<pre class="r"><code>nrow(subset(edu_equal_1, age &gt; 40 &amp; literate == &quot;yes&quot;))</code></pre>
+<pre><code>## [1] 6506</code></pre>
+<p>How many observations from Bulgaria have an income above 1000 ?</p>
+<pre class="r"><code>nrow(subset(edu_equal_1, ethnicity_head == &quot;Bulgaria&quot; &amp; income &gt; 1000))</code></pre>
+<pre><code>## [1] 8997</code></pre>
+<p>The data frame contains 8997 individuals with a Bulgarian ethnicity whose income is above 1000.</p>
+</div>
+<div id="import-spss-data-with-foreign" class="section level4">
+<h4>Import SPSS data with foreign</h4>
+<p>All great things come in pairs. Where <code>foreign</code> provided <code>read.dta()</code> to read Stata data, there’s also <code>read.spss()</code> to read SPSS data files. To get a data frame, make sure to set <code>to.data.frame = TRUE</code> inside <code>read.spss()</code>.</p>
+<pre class="r"><code># foreign is already loaded
+
+url &lt;- &quot;http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/international.sav&quot;
+
+# Import international.sav as a data frame: demo
+demo &lt;- read.spss(url, to.data.frame = TRUE)</code></pre>
+<pre><code>## re-encoding from CP1252</code></pre>
+<pre class="r"><code># Create boxplot of gdp variable of demo
+boxplot(demo$gdp)</code></pre>
+<p><img src="data:image/png;base64,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" title alt width="672" /></p>
+</div>
+<div id="excursion-correlation" class="section level4">
+<h4>Excursion: Correlation</h4>
+<p>If you’re familiar with statistic, you’ll have heard about Pearson’Correlation. It is a measurement to evaluate the linear dependency between two variables, say <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>. It can range from -1 to 1; if it’s close to 1 it means that there is a strong positive association between the variables. If <span class="math inline">\(X\)</span> is high, also <span class="math inline">\(Y\)</span> tends to be high. If it’s close to -1, there is a strong negative association: if <span class="math inline">\(X\)</span> is high, <span class="math inline">\(Y\)</span> tends to be low. When the Pearson correlation between two variables is 0, these variables are possibly independent: there is no association between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>.</p>
+<p>You can calculate the correlation between two vectors with the <code>cor()</code> function. Take this code for example, that computes the correlation between the columns <code>height</code> and <code>width</code> of a fictional data frame <code>size</code>:</p>
+<pre><code>cor(size$height, size$width)</code></pre>
+<p>What is the correlation coefficient for the two numerical variables <code>gdp</code> and <code>f_illit</code> (female illiteracy rate)?</p>
+<pre class="r"><code>cor(demo$gdp, demo$f_illit)</code></pre>
+<pre><code>## [1] -0.4476856</code></pre>
+<p>That indicates a negative association among GDP and female illiteracy.</p>
+</div>
+<div id="import-spss-data-with-foreign-1" class="section level4">
+<h4>Import SPSS data with foreign</h4>
+<p>In the previous exercise, you used the <code>to.data.frame</code> argument inside <code>read.spss()</code>. There are many other ways in which to customize the way your SPSS data is imported.</p>
+<p>In this exercise you will experiment with another argument, <code>use.value.labels</code>. It specifies whether variables with value labels should be converted into R factors with levels that are named accordingly. The argument is <code>TRUE</code> by default which means that so called labelled variable inside SPSS are converted to factor inside R.</p>
+<pre class="r"><code># foreign is already loaded
+
+# Import international.sav as demo_1
+demo_1 &lt;- read.spss(url, to.data.frame = TRUE)</code></pre>
+<pre><code>## re-encoding from CP1252</code></pre>
+<pre class="r"><code># Print out the head of demo_1
+head(demo_1)</code></pre>
+<pre><code>##   id              country  contint m_illit f_illit lifeexpt  gdp
+## 1  1 Argentina            Americas     3.0     3.0       16 3375
+## 2  2 Benin                  Africa    45.2    74.5        7  521
+## 3  3 Burundi                Africa    33.2    48.1        5   86
+## 4  4 Chile                Americas     4.2     4.4       14 4523
+## 5  5 Dominican Republic   Americas    12.0    12.7       12 2408
+## 6  6 El Salvador          Americas    17.6    22.9       11 2302</code></pre>
+<pre class="r"><code># Import international.sav as demo_2
+demo_2 &lt;- read.spss(url, to.data.frame = TRUE, 
+use.value.labels = FALSE)</code></pre>
+<pre><code>## re-encoding from CP1252</code></pre>
+<pre class="r"><code># Print out the head of demo_2
+head(demo_2)</code></pre>
+<pre><code>##   id              country contint m_illit f_illit lifeexpt  gdp
+## 1  1 Argentina                  2     3.0     3.0       16 3375
+## 2  2 Benin                      1    45.2    74.5        7  521
+## 3  3 Burundi                    1    33.2    48.1        5   86
+## 4  4 Chile                      2     4.2     4.4       14 4523
+## 5  5 Dominican Republic         2    12.0    12.7       12 2408
+## 6  6 El Salvador                2    17.6    22.9       11 2302</code></pre>
+</div>
 </div>
 </div>
 

@@ -1451,18 +1451,242 @@ str(sales)
 
 #### Import STATA data with haven
 
+Next up are STATA data files; you can use `read_dta()` for these.
+
+When inspecting the result of the `read_dta` call, you will notice
+that one column will be imported as a `labelled` vector, an R 
+equivalent for the common data structure in other statistical
+environments. In order to effectively continue working on the data
+in R, it's best to change this data into standard R class.
+To convert a variable of the class `labelled` to a factor, 
+you'll need `haven`'s `as_factor()` function.
+
+
+```{r}
+# haven is already loaded
+
+# Import the data from the URL: sugar
+sugar <- read_dta("http://assets.datacamp.com/production/course_1478/datasets/trade.dta")
+
+# Structure of sugar
+str(sugar)
+
+# Convert values in Date column to dates
+sugar$Date <- as.Date(as_factor(sugar$Date))
+
+# Structure of sugar again
+str(sugar)
+```
+
 #### What does the graphic tell?
+
+A plot can be very useful to explore the relationship between two
+variables. If you pass the `plot()` function two arguments,
+the first one will be on the x-axis, and the second one will be on
+the y-axis.
+
+After you've imported the data frame, you should plot two of
+its varibles, `Import` against `Weight_I`, and describe their
+relationship!
+
+```{r}
+plot(sugar$Import, sugar$Weight_I)
+```
+
+You can spot an increasing trend among the data points. This of
+course makes sense: the more sugar is traded, the higher the weight
+that's traded.
 
 #### Import SPSS data with haven
 
+The `haven` package can also import data files from SPSS. Again,
+importing the data is pretty straighforward. Depending on the 
+SPSS data file you're working with, you'll need either `read_sav()`
+for `.sav` files or `read_por()` for `.por` files.
+
+```{r eval=FALSE}
+# haven is already loaded
+
+# Import person.sav: traits
+traits <- read_sav("person.sav")
+
+# Summarize traits
+summary(traits)
+
+# Print out a subset
+subset(traits,Extroversion > 40 & Agreeableness > 40)
+```
+
 #### Factorize, round two
+
+In the last exercise you learned how to import a data file using
+the command `read_sav()`. With SPSS data files, it can also happen
+that some of the variables you import have the `labelled` class. 
+This is done to keep all the labelling information that was 
+originally present in the `.sav` and `.por` files. It's advised
+to coerce (or change) these variables to factors or other
+standard R classes.
+
+```{r eval=FALSE}
+# haven is already loaded
+
+# Import SPSS data from the URL: work
+work <- read_sav("employee.sav")
+
+# Display summary of work$GENDER
+summary(work$GENDER)
+
+
+# Convert work$GENDER to a factor
+work$GENDER <- as_factor(work$GENDER)
+
+
+# Display summary of work$GENDER again
+summary(work$GENDER)
+```
 
 #### Import STATA data with foreign
 
+The `foreign` package offers a simple function to import and
+read _STATA_ data: `read.dta()`.
+
+```{r eval=FALSE}
+# Load the foreign package
+library(foreign)
+
+# Import florida.dta and name the resulting data frame florida
+florida <- read.dta("florida.dta")
+
+# Check tail() of florida
+tail(florida)
+```
+
+Data can be very diverse, going from character vectors to categorical
+variables, dates and more. It's in these case that the additional
+arguments of `read.dta()` will come in handy.
+
+The arguments you will use most often are `convert.dates`, 
+`convert.factors`, `missing.type` and `convert.underscore`. Their
+meaining is pretty straightforward. It's all about correctly 
+converting STATA data to standard R data structures.
+
+```{r}
+library(foreign)
+
+# Specify the file path using file.path(): path
+path <- file.path("worldbank", "edequality.dta")
+url <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/edequality.dta"
+
+# Create and print structure of edu_equal_1
+edu_equal_1 <- read.dta(url)
+str(edu_equal_1)
+```
+
+For this data, the first version (where you simply specified the 
+file path) will be most useful to work with.
+
 #### Do you know your data?
 
+The previous exercise dealt about socio-economic indicators and
+access to education of different individuals.
+
+For example, you can ask yourself how many observations have an `age`
+higher than 40 adn are `literate`.
+
+You see that `age` is an integer, and `literate` is a factor, with
+levels "yes" and "no". The following expression thus answers the
+question
+
+```{r}
+nrow(subset(edu_equal_1, age > 40 & literate == "yes"))
+```
+
+How many observations from Bulgaria have an income above 1000 ?
+
+```{r}
+nrow(subset(edu_equal_1, ethnicity_head == "Bulgaria" & income > 1000))
+```
+
+The data frame contains 8997 individuals with a Bulgarian 
+ethnicity whose income is above 1000.
+
 #### Import SPSS data with foreign
+
+All great things come in pairs. Where `foreign` provided `read.dta()`
+to read Stata data, there's also `read.spss()` to read SPSS data files.
+To get a data frame, make sure to set `to.data.frame = TRUE` inside
+`read.spss()`.
+
+```{r}
+# foreign is already loaded
+
+url <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1478/datasets/international.sav"
+
+# Import international.sav as a data frame: demo
+demo <- read.spss(url, to.data.frame = TRUE)
+
+# Create boxplot of gdp variable of demo
+boxplot(demo$gdp)
+```
 
 #### Excursion: Correlation
 
+If you're familiar with statistic, you'll have heard about
+Pearson'Correlation. It is a measurement to evaluate the linear
+dependency between two variables, say $X$ and $Y$. It can range
+from -1 to 1; if it's close to 1 it means that there is a strong
+positive association between the variables. If $X$ is high, also
+$Y$ tends to be high. If it's close to -1, there is a strong
+negative association: if $X$ is high, $Y$ tends to be low.
+When the Pearson correlation between two variables is 0, these
+variables are possibly independent: there is no association between
+$X$ and $Y$.
+
+You can calculate the correlation between two vectors with the
+`cor()` function. Take this code for example, that computes the
+correlation between the columns `height` and `width` of a 
+fictional data frame `size`:
+
+```
+cor(size$height, size$width)
+```
+
+What is the correlation coefficient for the two numerical variables
+`gdp` and `f_illit` (female illiteracy rate)?
+
+```{r}
+cor(demo$gdp, demo$f_illit)
+```
+
+That indicates a negative association among GDP and female illiteracy.
+
 #### Import SPSS data with foreign
+
+In the previous exercise, you used the `to.data.frame` argument
+inside `read.spss()`. There are many other ways in which to 
+customize the way your SPSS data is imported.
+
+In this exercise you will experiment with another argument, 
+`use.value.labels`. It specifies whether variables with value
+labels should be converted into R factors with levels that are
+named accordingly. The argument is `TRUE` by default which means that
+so called labelled variable inside SPSS are converted to factor
+inside R.
+
+```{r}
+# foreign is already loaded
+
+# Import international.sav as demo_1
+demo_1 <- read.spss(url, to.data.frame = TRUE)
+
+# Print out the head of demo_1
+head(demo_1)
+
+# Import international.sav as demo_2
+demo_2 <- read.spss(url, to.data.frame = TRUE, 
+use.value.labels = FALSE)
+
+# Print out the head of demo_2
+head(demo_2)
+```
+

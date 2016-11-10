@@ -744,20 +744,594 @@ import your data!
 
 #### Working with dates
 
+Dates can be a challenge to work with in any programming language, 
+but thanks to the `lubridate` package, working with dates in R 
+isn't so bad. Since this course is about cleaning data, we only
+cover the most basic functions from `lubridate` to help us standardize
+the fromat of dates and times on our data.
+
+These functions, combine letters `y`, `m`, `d`, `h`, `m`, `s`, 
+which stand for year, month, day, hour, minute, and second,
+respectively. The order of the letters in the function should match
+the order of the date/time you are attempting to read in, although
+not all combinations are valid. Notice that the functions are
+"smart" in that they are capable of parsing multiple formats.
+
+```{r}
+# Load the lubridate package
+library(lubridate)
+
+# Parse as date
+dmy("17 Sep 2015")
+
+# Parse as date and time (with no seconds!)
+mdy_hm("July 15, 2012 12:56")
+```
+
 #### Trimming and padding strings
+
+One common issue that comes up when cleaning data is the need to
+remove leading and/or trailing white space. The `str_trim()` 
+function from `stringr` makes it easy to do this while leaving
+intact the part of the string that you actually want.
+
+```
+> str_trim("   this is a test    ")
+[1] "this is a test"
+```
+
+A similar issue is when you need to pad strings to make them a 
+certain number of characters wide. One example is if you had a 
+bunch of employee ID numbers, some of which begin
+ with one or more zeros. When reading these data in, you find
+ that the leading zeros have been dropped somewhere along the
+ way (probabily because the variable was thought to be numeric
+ and in that case, leading zeros would be unnecessary).
+ 
+ ```
+ > str pad("24493", width = 7, side = "left", pad = "0")
+[1] "0024493"
+```
+
+```{r}
+# Load the stringr package
+library(stringr)
+
+# Trim all leading and trailing whitespace
+str_trim(c("   Filip ", "Nick  ", " Jonathan"))
+
+# Pad these strings with leading zeros
+str_pad(c("23485W", "8823453Q", "994Z"), width = 9, side = "left", pad = "0")
+```
+
+Examples like this are certainly handy in R. For example, 
+the `str_pad()` function is useful when importing a dataset with 
+US zip codes. Occasionally R will drop the leading 0 in a zipcode, 
+thinking it's numeric. Now that you know how to coerce variable 
+types and pad strings, this won't set you back!
 
 #### Upper and lower case
 
+In addition to trimming and padding strings, you may need to
+adjust their case from time to time. Making strings uppercase
+or lowercase is very straightforward in (base) R thanks to 
+`toupper()` and `tolower()`. Each function takes exactly one 
+argument: the character string (or vector/column of strings) to
+be converted to the desidered case.
+
+```{r}
+states <- c("al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", 
+            "ga", "hi", "id", "il", "in", "ia", "ks", "ky", "la", 
+            "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", 
+            "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok", 
+            "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", 
+            "va", "wa", "wv", "wi", "wy")
+# Print state abbreviations
+head(states)
+
+# Make states all uppercase and save result to states_upper
+states_upper <- toupper(states)
+head(states_upper)
+
+# Make states_upper all lowercase again
+tolower(states_upper)
+```
+
 #### Finding and replacing strings
+
+The `stringr` package provides two functions that are very useful
+for finding and/or replacing strings: `str_detect()` and 
+`str_replace()`.
+
+Like all functions in stringr, the first argument of each is the
+string of interest. The second argument of each is the pattern
+of interest. In the aces of `str_detect()`, this is the pattern
+we are searching for. In the case of `str_replace()`, this is the
+pattern we want to replace. Finally, `str_replace()` has a third
+argument, which is the string to replace with.
+
+```{r echo=FALSE}
+X <- 1:6
+school <- rep("GB", 6)
+sex <- c("F", "F", "F", "F", "F", "M")
+dob <- c("2000-06-05", "1999-11-25", "1998-02-02", "1997-12-20",
+         "1998-10-04", "1999-06-16")
+students2 <- data.frame(X, school, sex, dob)
+```
+
+
+```{r}
+## stringr has been loaded for you
+
+# Look at the head of students2
+head(students2)
+
+# Detect all dates of birth (dob) in 1997
+str_detect(students2$dob, "1997")
+
+# In the sex column, replace "F" with "Female"...
+students2$sex <- str_replace(students2$sex, "F", "Female")
+
+# ...And "M" with "Male"
+students2$sex <- str_replace(students2$sex, "M", "Male")
+
+# View the head of students2
+head(students2)
+```
 
 #### Types of missing and special values in R
 
+Missing values
+
+- In R, represented as `NA`
+- May appear in other forms, `#N/A` (Excel), single dot (SPSS, SAS)
+
+Special values
+
+- `Inf` - "Infinite value"
+- `NaN` - "Not a number"
+
 #### Finding missing values
+
+As you've seen, missing values in R should be represented by `NA`,
+but unfortunately you will not always be so lucky. Before you can deal
+with missing values, you have to find them in the data.
+
+If missing value are properly coded as `NA`, the `is.na()` function
+will help you find them. Otherwise, if your datase is too big to just
+look at the whole thing, you may need to try searching for some
+of the usual suspects like `""`, `"#N/A"`, etc. You can also use
+the `summary()` and `table()` functions to turn up unexpected values
+in your data.
+
+```{r echo=FALSE}
+name <- c("Sarah", "Tom", "David", "Alice")
+n_friends <- c(244, NA, 145, 43)
+status <- c("Going out!", "", "Movie night...", "")
+social_df <- data.frame(name, n_friends, status)
+```
+
+```{r}
+# Call is.na() on the full social_df to spot all NAs
+is.na(social_df)
+
+# Use the any() function to ask whether there are any NAs in the data
+any(is.na(social_df))
+
+# View a summary() of the dataset
+summary(social_df)
+
+# Call table() on the status column
+table(social_df$status)
+```
+
+Scanning your dataset for `NA` values is essential before learning how 
+to remedy missing data problems.
 
 #### Dealing with missing values
 
-#### Identifying outliers and obvious errors
+Missing values can be a rather complex subject, but here we'll only
+look at the simple case where you are simply interested in 
+normalizing and/or removing all missing values from your data.
+For more information on why this is not always the best strategy,
+search online for "missing not at random".
+
+Looking at the `social_df` dataset again, we asked around a bit and
+figured out what's causing the missing values that you saw in the
+last exercise. Tom doesn't have a social media account on this
+particular platform, which explain why his number of friends and
+current status are missing. Alice is on the platform, but is a passive
+user and never sets her status, hence the reason it's missing for her.
+
+```{r}
+## The stringr package is preloaded
+
+# Replace all empty strings in status with NA
+social_df$status[social_df$status == ""] <- NA
+
+# Print social_df to the console
+social_df
+
+# Use complete.cases() to see which rows have no missing values
+complete.cases(social_df)
+
+# Use na.omit() to remove all rows with any missing values
+na.omit(social_df)
+```
+
+Often times in data analyses, you'll want to get a feel for how many
+complete observations you have. This can be helpful in determining 
+how you handle observations with missing data points.
 
 #### Dealing with outliers and obvious errors
 
+When dealing with strange values in your data, you often must decide
+whether they are just extreme or actually erroneous. Extreme values
+show up all over the place, but you, the data analyst, must figure
+out when they are plausible and when they are not.
+
+```{r eval=FALSE}
+# Look at a summary() of students3
+summary(students3)
+
+# View a histogram of the age variable
+hist(students3$age)
+
+# View a histogram of the absences variable
+hist(students3$absences)
+
+# View a histogram of absences, but force zeros to be bucketed to the right of zero
+hist(students3$absences, right = FALSE)
+```
+
 #### Another look at strange values
+
+Another useful way of looking at strange values is with boxplots.
+Simply put, boxplots draw a box around the middle 50% of values for 
+a given variable, with a bolded horizontal line drawn at the median.
+Values that fall far from the bulk of the data points (i.e. outliers)
+are denoted by open circles. (If you're curious about the exact
+formula for determining what is "far", check out `?hist`.)
+
+In this situation, we are concerned about three things:
+
+1. Since this dataset is about students and the only student
+   above the age of 22 is 38 years old, we must wonder whether
+   this is an error in the data or just an older student (perhaps
+   returning to school after working for several years)
+2. There are four values of -1 for the `absences` variable, which
+   is either a mistake or an international coding meant to say,
+   for example, "this value is missing"
+3. There are several extreme values of `abscences` in the positive
+   direction, with a maximum value of 75 (which is over 18 times
+   the median value of 4)
+
+```{r eval=FALSE}
+# View a boxplot of age
+boxplot(students3$age)
+
+# View a boxplot of absences
+boxplot(students3$absences)
+```
+
+### Putting it all together
+
+In this chapter, you will practice everything you've learned from 
+the first three chapters in order to clean a messy dataset using R.
+
+#### Get a feel for the data
+
+```{r echo=FALSE}
+weather <- read.csv("weather.csv")
+weather <- weather[,2:36]
+```
+
+```{r}
+# Verify that weather is a data.frame
+class(weather)
+
+# Check the dimensions
+dim(weather)
+
+# View the column names
+names(weather)
+```
+
+#### Summarize the data
+
+Next up is to look at some summaries of the data. This is where
+functions like `str()`, `glimpse()` from `dplyr`, and `summary()` 
+come in handy.
+
+```{r}
+# View the structure of the data
+str(weather)
+
+# Load dplyr package
+library(dplyr)
+
+# Look at the structure using dplyr's glimpse()
+glimpse(weather)
+
+# View a summary of the data
+summary(weather)
+```
+
+Now that we have a pretty good feel for how the table is structured, 
+we'll take a look at some real observations!
+
+#### Take a closer look
+
+After understanding the structure of the data and looking at some
+brief summaries, it often helps to preview the actual data. The 
+functions `head()` and `tail()` allow you to view the top and bottom
+rows of the data, respectively. Recall you'll be shown 6 rows by
+default, but you can alter this behavior with a second argument to 
+the function.
+
+```{r}
+# View first 6 rows
+head(weather)
+
+# View first 15 rows
+head(weather, n = 15)
+
+# View the last 6 rows
+tail(weather)
+
+# View the last 10 rows
+tail(weather, n = 10)
+```
+
+#### Column names are values
+
+The `weather` dataset suffers from one of the five most common symptoms
+of messy data: column names are values. In particular, the column names
+`X1` - `X31` represent days of the month, which should really be values
+of a new variable called `day`.
+
+The `tidyr` package provides the `gather()` function for exactly this
+scenario. To remind you of how it works, try it with the `df` dataset.
+
+```{r echo=FALSE}
+subject <- c("X", "Y", "Z")
+age <- c(34, 88, 35)
+t1 <- c(0.66753014, 0.3588532, 0.3971684)
+t2 <- c(-0.7438284, 0.9038673, 0.7129142)
+t3 <- c(0.2333987, -0.5104356, 1.3817088)
+df <- data.frame(subject,age,t1,t2,t3)
+```
+```{r}
+# Load the tidyr package
+library(tidyr)
+
+df2 <- gather(df, time, val, t1:t3)
+df2
+```
+
+Notice that `gather()` allows you to select multiple
+columns to be gathered by using the `:` operator.
+
+```{r}
+# Gather the columns
+weather2 <- gather(weather, day, value, X1:X31, na.rm = TRUE)
+
+# View the head
+head(weather2)
+```
+
+#### Values are variables names
+
+Our data suffer from a second common symptom of messy data: values
+are variable names. Specifically, values in the `measure` column
+should be variables (i.e. column names) in our dataset. 
+
+The `spread()` function from `tidyr` is designed to help with this.
+To remind you of how this function works, we've loaded another small
+dataset called `df2`. 
+
+```{r}
+spread(df2, time, val)
+```
+
+Note how the values of the `time` column now become column names.
+
+```{r}
+## The tidyr package is already loaded
+
+# First remove column of row names
+weather2 <- weather2[, -1]
+
+# Spread the data
+weather3 <- spread(weather2, measure, value)
+
+# View the head
+head(weather3)
+```
+
+#### Clean up dates
+
+Now that the weather dataset adheres to tidy data principles, the
+next step is to prepare it for analysis. We'll start by combining the
+year, month, and day columns and recoding the resulting character 
+column as a date. We can use a combination of `base` R, `stringr`, and
+`lubridate` to accomplish this task.
+
+```{r}
+## tidyr and dplyr are already loaded
+
+# Load the stringr and lubridate packages
+library(stringr)
+library(lubridate)
+
+# Remove X's from day column
+weather3$day <- str_replace(weather3$day,"X","")
+
+# Unite the year, month, and day columns
+weather4 <- unite(weather3, date, year, month, day, sep = "-")
+
+# Convert date column to proper date format using lubridates's ymd()
+weather4$date <- ymd(weather4$date)
+
+# Rearrange columns using dplyr's select()
+weather5 <- select(weather4, date, Events, CloudCover:WindDirDegrees)
+
+# View the head of weather5
+head(weather5)
+```
+
+#### A closer look at column types
+
+It's important for analysis that variables are coded appropriately. This
+is not yet the case with our weather data. Recall that function such
+as `as.numeric()` and `as.character()` can be used to _coerce_ variables
+into different types.
+
+It's important to keep in mind that coercions are not always successfull,
+particularly if there's some data in a column that you don't expect.
+For example, the following will cause problems:
+
+```
+as.numeric(c(4, 6.44, "some string", 222))
+```
+
+You'll get a warning message saying that R introduced an `NA` in the
+process of coercing to numeric. This is because it doesn't know how
+to make a number out of a string (`"some string"`).
+
+```{r}
+# View the structure of weather5
+str(weather5)
+
+# Examine the first 20 rows of weather5. Are most of the characters numeric?
+head(weather5, n = 20)
+
+# See what happens if we try to convert PrecipitationIn to numeric
+as.numeric(weather5$PrecipitationIn)
+```
+
+#### Column type conversion
+
+As you saw in the last exercise, `"T"` was used to denote a _trace_ 
+amount of precipitation in the `PrecipitationIn` column. In order to
+coerce this column to numeric, you'll need to deal with this somehow.
+
+```{r}
+## The dplyr and stringr packages are already loaded
+
+# Replace T with 0 (T = trace)
+weather5$PrecipitationIn <- str_replace(weather5$PrecipitationIn, "T", "0")
+
+# Convert characters to numerics
+weather6 <- mutate_each(weather5, funs(as.numeric), CloudCover:WindDirDegrees)
+
+# Look at result
+str(weather6)
+```
+
+It looks like our data are finally in the correct formats and organized 
+in a logical manner! Now that our data are in the right form, 
+we can begin the analysis.
+
+#### Find missing values
+
+Before dealing with missing values in the data, it's important to find
+them and figure out why they exist in the first place. If your dataset
+is too big to look at all at once, like it is here, remember you can
+use `sum()` and `is.na()` to quickly size up the situation by
+counting the number of `NA` values.
+
+The `summary()` function may also come in handy for identifying
+which variables contain the missing values. Finally, the `which()`
+function is useful for locating the missing values within a particular
+column.
+
+```{r}
+# Count missing values
+sum(is.na(weather6))
+
+# Find missing values
+summary(weather6)
+
+# Find indices of NAs in Max.Gust.SpeedMPH
+ind <- which(is.na(weather6$Max.Gust.SpeedMPH))
+
+# Look at the full rows for records missing Max.Gust.SpeedMPH
+weather6[ind, ]
+```
+
+In this situation it's unclear why these values are missing and there
+doesn't appear to be any obvious pattern to their missingness, 
+so we'll leave them alone for now.
+
+#### An obvious error
+
+Besides missing values, we want to know if there are values in the data
+that are too extreme or bizarre to be plausible. A great way to start
+the search for these values is with `summary()`.
+
+Once implausible values are identified, they must be dealt with in an
+intelligent and informed way. Sometimes the best way forward is obvious
+and other times it may require some research and/or discussions with
+the original collectors of the data.
+
+```{r}
+# Review distributions for all variables
+summary(weather6)
+
+# Find row with Max.Humidity of 1000
+ind <- which(weather6$Max.Humidity == 1000)
+
+# Look at the data for that day
+weather6[ind, ]
+
+# Change 1000 to 100
+weather6$Max.Humidity[ind] <- 100
+```
+
+Once you find obvious errors, it's not too hard to fix them if you
+know which values they should take.
+
+#### Another obvious error
+
+You've discovered and repaired one obvious error in the data, but it
+appears that there's another. Sometimes you get lucky and can infer 
+the correct or intended value from the other data. For example, if you
+know the minimum and maximum values of a particular metric on a
+given day...
+
+```{r}
+# Look at summary of Mean.VisibilityMiles
+summary(weather6$Mean.VisibilityMiles)
+
+# Get index of row with -1 value
+ind <- which(weather6$Mean.VisibilityMiles == -1)
+
+# Look at full row
+weather6[ind,]
+
+# Set Mean.VisibilityMiles to the appropriate value
+weather6$Mean.VisibilityMiles[ind] <- 10
+```
+
+#### Check other extreme values
+
+In addition to dealing with obvious errors in the data, we want
+to see if there are other extreme values. In addition to the trusty
+`summary()` function, `hist()` is useful for quickly getting a feel for
+how different variables are distributed.
+
+```{r}
+# Review summary of full data once more
+summary(weather6)
+
+# Look at histogram for MeanDew.PointF
+hist(weather6$MeanDew.PointF)
+
+# Look at histogram for Min.TemperatureF
+hist(weather6$Min.TemperatureF)
+
+# Compare to histogram for Mean.TemperatureF
+hist(weather6$Mean.TemperatureF)
+```
+

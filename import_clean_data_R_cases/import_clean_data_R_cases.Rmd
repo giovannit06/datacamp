@@ -370,21 +370,416 @@ mbta2 <- mbta[-c(1,7,11),]
 mbta3 <- mbta2[,-1]
 ```
 
-
 #### Observations are stored in columns
+
+Recall from a few exercises back that in your T ridership data,
+variables are stored in rows instead of columns.
+
+The different modes of transportation (commuter rail, bus, subway,
+ferry, ...) are **variables**, providing information about each
+month's average ridership. The months themselves are **observations**.
+You can tell which is which because as you go through time, the
+month changes, but the modes of transport offered by the T do not.
+
+As is customary, you want to represent variables in columns
+rather than rows. The first step is to uset the `gather()` 
+function from the `tidyr` package, which will gather columns
+into key-value pairs.
+
+```{r}
+# Load tidyr
+library(tidyr)
+
+# Gather columns of mbta3: mbta4
+mbta4 <- gather(mbta3, month, thou_riders, -mode)
+
+# View the head of mbta4
+head(mbta4)
+```
+
+Your dataset is **long** now - notice that the first column still
+stores variable names , but now, months have their column instead
+of being headers. Also notice the data type in each column.
 
 #### Type conversions
 
+In a minute, you'll put variables where they belong (as column
+names). But first, take this oppurtunity to change the average
+weekday ridership column, `thou_riders`, into numeric values
+rather than character strings. That way, you'll be able to do
+things like compare values and do math.
+
+```{r}
+# Coerce thou_riders to numeric
+mbta4$thou_riders <- as.numeric(mbta4$thou_riders)
+```
+
 #### Variables are stored in both rows and colums
+
+Now, you can finish the job you started earlier: getting 
+variables into columns. Right now, variables are stored as 
+"keys" in the `mode` column. You'll use the `tidyr` function
+`spread()` to make them into columns containing average
+weekday ridership for the given month and mode of transport.
+
+```{r}
+# Spread the contents of mbta4: mbta5
+mbta5 <- spread(mbta4, mode, thou_riders)
+
+# View the head of mbta5
+head(mbta5)
+```
 
 #### Separating columns
 
+Your dataset is already looking much better! Your boss saw
+what a great job you're doing and now wants you to do an analysis
+of the T's ridership during certain months across all years.
+
+Your dataset has month names in it, so that analysis will be a 
+piece of cake. There's only one small problem: if you want to
+look at ridership on the T during every January (for example),
+the month and year are together in the same column, which makes 
+it a little tricky.
+
+In this exercise, you'll separate the `month` column into
+distinct `month` and `year` columns to make life easier.
+
+```{r}
+# View the head of mbta5
+head(mbta5)
+
+# Split month column into month and year: mbta6
+mbta6 <- separate(mbta5, month, c("year", "month"), sep = "-")
+
+# View the head of mbta6
+head(mbta6)
+```
+
 #### Do your values seem reasonable ?
 
+Before you write up the analysis for your boss, it's a good idea
+to screen the data for any obvious mistakes and/or outliers.
+
+There are many valid techniques for doing this.
+
+```{r}
+# View a summary of mbta6
+summary(mbta6)
+
+# Generate a histogram of Boat ridership
+hist(mbta6$Boat)
+```
+
 #### Dealing with entry error
+
+Think for a minute about that `Boat` histogram. Every month,
+average weekday coomuter boat ridership was on either side of
+four thousand. Then, one month it jumped to 40 thousand without
+warning ?
+
+Unless the Oympics were happening in Boston that month, this value
+is certainly an error. You can assume that whoever was entering
+the data that month accidentally typed `40` instead of `4`.
+
+Because it's error, you don't want this value influencing your
+analysis. In this exercise, you'll locate the incorrect value
+and change it to `4`.
+
+After you make the change, you'll run the last two commands in
+the editor as-is. They use function you may not know yet to produce
+some cool ridership plots: one showing the lesser-used modes of
+transport (take a look at gorgeous seasonal variation in Boat
+ridership), and one showing all modes of transport. The plots are
+based on the long version of the data we produced in Exercise 4 --
+a good example of using different data formats for different
+purposes.
+
+```{r}
+# Find the row number of the incorrect value: i
+i <- which(mbta6$Boat > 10 )
+
+# Replace the incorrect value with 4
+mbta6$Boat[i] <- 4
+
+# Generate a histogram of Boat column
+hist(mbta6$Boat)
+
+library(ggplot2)
+mbta_boat <- subset(mbta4, mode %in% c("Boat", "Trackless Trolley"))
+# Look at Boat and Trackless Trolley ridership over time (don't change)
+ggplot(mbta_boat, aes(x = month, y = thou_riders, col = mode)) +  geom_point() + 
+  scale_x_discrete(name = "Month", breaks = c(200701, 200801, 200901, 201001, 201101)) + 
+  scale_y_continuous(name = "Avg Weekday Ridership (thousands)")
+mbta_all <- mbta4
+# Look at all T ridership over time (don't change)
+ggplot(mbta_all, aes(x = month, y = thou_riders, col = mode)) + geom_point() + 
+  scale_x_discrete(name = "Month", breaks = c(200701, 200801, 200901, 201001, 201101)) +  
+  scale_y_continuous(name = "Avg Weekday Ridership (thousands)")
+```
 
 ### World Food Facts
 
 We all know that you are what you eat, so what exactly are you?
 In this chapter, you'll import and clean some data about food 
 products from around the world.
+
+#### Importing the data
+
+As a person of many talents, it's time to take on a different job:
+nutritional analysis! Your goal is to analyze the sugar content
+of a sample of foods from around the world.
+
+A large dataset called `food.csv` is ready for your use in the 
+working directory. Instead of the usual `read.csv()`, however, you're
+going to use the faster `fread()` from the `data.table` package.
+The data will come in as a data table, but since you're used
+to working with data frames, you can just convert it.
+
+```{r}
+# Load data.table
+library(data.table)
+
+# Import food.csv: food
+food <- fread("food.csv")
+
+# Convert food to a data frame
+food <- data.frame(food) 
+food <- food[,-1]
+dim(food)
+```
+
+#### Examining the data
+
+As usual, you'll need to get an idea of what the dataset looks
+like in order to know how to proceed.
+
+```{r}
+# View summary of food
+summary(food)
+
+# View head of food
+head(food)
+
+# View structure of food
+str(food)
+```
+
+With datasets this big, it's hard to get a handle on exactly
+what they contain.
+
+#### Inspecting variables
+
+The `str()`, `head()` and `summary()` functions are designed
+to give you some information about a dataset without being
+overwhelming. However, this dataset is so large and has
+so many variables that even these outputs seemed pretty 
+intimidating!
+
+The `glimpse()` function from the `dplyr` package often formats
+information in a more approacheble way.
+
+Yet another option is to just look at the column names to see
+what kinds of data you have. As you look at the names, pay
+particular attention to any pairs that look like duplicates.
+
+```{r}
+# Load dplyr
+library(dplyr)
+
+# View a glimpse of food
+glimpse(food)
+
+# View column names of food
+names(food)
+```
+
+#### Removing duplicate Info
+
+Wow. That's a lot of variables. To summarize, there's some
+information on what and when information was added(1:9), meta
+information about food (10:17, 22, 27), where it come from
+(18:21, 28:34), what it's made of (35:52), nutrition grade (53:54),
+som unclear (55:63), and some nutritional information (64:159).
+
+There are also many different pairs of columns that contain
+duplicate information. Luckily, you have a trusty assistant 
+who went through and identified duplicate columns for you.
+
+A vector has been created for you that lists out all of the
+duplicates; all you need to do is remove those columns from
+the dataset. Don't forget, you can use the `-` operator to
+specify columns to omit, e.g.: 
+
+```
+my_df[, -3] # Omit third column
+```
+
+```{r}
+# Define vector of duplicate cols (don't change)
+duplicates <- c(4, 6, 11, 13, 15, 17, 18, 20, 22, 
+                24, 25, 28, 32, 34, 36, 38, 40, 
+                44, 46, 48, 51, 54, 65, 158)
+
+# Remove duplicates from food: food2
+food2 <- food[, -duplicates]
+```
+
+#### Removing useless Info
+
+Your dataset is much more manageable already.
+
+In addition to duplicate columns, there are many columns
+containing information that you just can't use. For example,
+the first few columns contain internal codes that don't have
+any meaning to us. There are also some column names that
+aren't clear enough to tell what they contain.
+
+All of these columns can be deleted. Once again, your
+assistant did a splendid job finding the indices for you.
+
+```{r}
+# Define useless vector (don't change)
+useless <- c(1, 2, 3, 32:41)
+
+# Remove useless columns from food2: food3
+food3 <- food2[, - useless]
+```
+
+#### Finding columns
+
+Looking much nicer! Recall from the first exercise that you
+are assuming you will be analyzing the sugar content of these
+foods. Therefore, your next step is to look at a summary of 
+the nutrition information.
+
+All of the columns with nutrition info contain the character
+string `"100g"` as part of their name, which makes it easy
+to identify them.
+
+```{r}
+# Load stringr
+library(stringr)
+
+# Create vector of column indices: nutrition
+nutrition <- str_detect(names(food3), "100g")
+
+# View a summary of nutrition columns
+summary(food3[,nutrition])
+```
+
+#### Replacing missing values
+
+Unfortunately, the summary revealed that the nutrition data are
+mostly `NA` values. After consulting with the lab technician,
+it appears that much of the data is missing because the food
+just doesn't have those nutrients.
+
+But all is not lost! The lab tech also said that for sugar
+content, zero values are sometimes entered explicitly, but
+sometimes the values are just left empty to denote a zero.
+A statistical miracle!
+
+In this exercise, you'll replace all `NA` values with zeroes
+in the `sugar_100g` column and make histograms to visualize
+the result. Then, you will exclude the observations which have
+no sugar to see how the distribution changes.
+
+```{r}
+# Find indices of sugar NA values: missing
+missing <- is.na(food3$sugars_100g)
+
+# Replace NA values with 0
+food3$sugars_100g[missing] <- 0
+
+# Create first histogram
+hist(food3$sugars_100g)
+
+# Create food4
+food4 <- food3[food3$sugars_100g != 0, ]
+
+# Create second histogram
+hist(food4$sugars_100g)
+```
+
+Excluding the observations which don't contain any sugar, 
+you can better visualie what the underlying distribution
+looks like.
+
+#### Dealing with messy data
+
+Your analysis of sugar content was so impressive that you've
+now been tasked with determining how many of these foods
+come in some sort of plastic packaging.
+
+Your dataset has information about packaging, but there's a bit
+of a problem: it's stored in several different languages.
+This takes messy data to a whole new level! There is no R
+package to selectively translate, but what if you could jus
+work with the messy data directly ?
+
+You're in luck! The root word for _plastic_ is same in English
+(plastic), French (plastique), and Spanish (plastico). To get
+a general idea of how many of these foods are packaged in
+plastic, you can look through the `packaging-tags` column for
+the string `"plasti"`.
+
+```{r}
+# Find entries containing "plasti": plastic
+plastic <- str_detect(food3$packaging_tags, "plasti")
+
+# Print the sum of plastic
+sum(plastic)
+```
+
+### School Attendance Data
+
+Use all of the tools you've learned to import and clean a gnarly
+dataset containing information on average school attendance in the US.
+
+#### Importing the data
+
+In this chapter, you'll work with attendance data from public
+schools in the US, organized by school level and state, during
+2007-2008 academic year. The data contain information on
+average daily attendance (ADA) as a percentage of total 
+enrollment, school day length, and school year length.
+
+The data were given to you in an Excel spreadsheet.
+
+Do you see any symptoms of untidy data ? At first glance, it looks
+like the first row is a description of the data, the second row
+is a variable itself that groups multiple columns together, and
+the fourth row give numbers for the columns, which might look
+nice in a spreadsheet but isn't very useful for you, the analyst.
+
+You'll take it one step at a time to import the data using
+the `gdata` package. The name of this spreadsheet is 
+`attendance.xls`.
+
+```{r}
+# Load the gdata package
+library(gdata)
+
+# Import the spreadsheet: att
+att <- read.xls("attendance.xls")
+```
+
+Whoops, looks like your call to `read.xls()` triggered a warning.
+You already got experience interpreting warning messages in
+previous chapters, so we'll just go ahead and tell you: this
+one's nothing to worry about.
+
+#### Examining the data
+
+#### Removing unnecessary rows
+
+#### Removing useless columns
+
+#### Splitting the data
+
+#### Replacing the names
+
+#### Cleaning up extra characters
+
+#### Some final type conversions

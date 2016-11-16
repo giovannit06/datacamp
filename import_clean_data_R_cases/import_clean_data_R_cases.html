@@ -2785,24 +2785,215 @@ att &lt;- read.xls(&quot;attendance.xls&quot;)</code></pre>
 </div>
 <div id="examining-the-data-1" class="section level4">
 <h4>Examining the data</h4>
+<p>Now that you’ve successfully imported the data into R, you can get a better idea of how the spreadsheet was read in.</p>
+<pre class="r"><code># Print the column names 
+names(att)</code></pre>
+<pre><code>##  [1] &quot;Table.43..Average.daily.attendance..ADA..as.a.percentage.of.total.enrollment..school.day.length..and.school.year.length.in.public.schools..by.school.level.and.state..2007.08&quot;
+##  [2] &quot;X&quot;                                                                                                                                                                            
+##  [3] &quot;X.1&quot;                                                                                                                                                                          
+##  [4] &quot;X.2&quot;                                                                                                                                                                          
+##  [5] &quot;X.3&quot;                                                                                                                                                                          
+##  [6] &quot;X.4&quot;                                                                                                                                                                          
+##  [7] &quot;X.5&quot;                                                                                                                                                                          
+##  [8] &quot;X.6&quot;                                                                                                                                                                          
+##  [9] &quot;X.7&quot;                                                                                                                                                                          
+## [10] &quot;X.8&quot;                                                                                                                                                                          
+## [11] &quot;X.9&quot;                                                                                                                                                                          
+## [12] &quot;X.10&quot;                                                                                                                                                                         
+## [13] &quot;X.11&quot;                                                                                                                                                                         
+## [14] &quot;X.12&quot;                                                                                                                                                                         
+## [15] &quot;X.13&quot;                                                                                                                                                                         
+## [16] &quot;X.14&quot;                                                                                                                                                                         
+## [17] &quot;X.15&quot;</code></pre>
+<pre class="r"><code># Print the first 6 rows
+head(att)</code></pre>
+<pre><code>##   Table.43..Average.daily.attendance..ADA..as.a.percentage.of.total.enrollment..school.day.length..and.school.year.length.in.public.schools..by.school.level.and.state..2007.08
+## 1                                                                                                                                                                              
+## 2                                                                                                                                                                              
+## 3                                                                                                                                                                             1
+## 4                                                                                                                                                        United States ........
+## 5                                                                                                                                                     Alabama .................
+## 6                                                                                                                                                     Alaska ..................
+##                                                                        X
+## 1 Total elementary, secondary, and combined elementary/secondary schools
+## 2                                           ADA as percent of enrollment
+## 3                                                                      2
+## 4                                                                   93.1
+## 5                                                                   93.8
+## 6                                                                   89.9
+##      X.1                         X.2    X.3                         X.4
+## 1                                                                      
+## 2        Average hours in school day        Average days in school year
+## 3                                  3                                  4
+## 4 (0.22)                         6.6 (0.02)                         180
+## 5 (1.24)                         7.0 (0.07)                         180
+## 6 (1.22)                         6.5 (0.05)                         180
+##     X.5                          X.6    X.7                          X.8
+## 1                                                     Elementary schools
+## 2       Average hours in school year        ADA as percent of enrollment
+## 3                                  5                                   6
+## 4 (0.1)                        1,193  (3.1)                         94.0
+## 5 (0.8)                        1,267 (12.3)                         93.8
+## 6 (3.4)                        1,163 (22.9)                         91.3
+##      X.9                        X.10   X.11                         X.12
+## 1                                                      Secondary schools
+## 2        Average hours in school day        ADA as percent of enrollment
+## 3                                  7                                   8
+## 4 (0.27)                         6.7 (0.02)                         91.1
+## 5 (1.84)                         7.0 (0.08)                         94.6
+## 6 (1.56)                         6.5 (0.05)                         93.2
+##     X.13                        X.14   X.15
+## 1                                          
+## 2        Average hours in school day       
+## 3                                  9       
+## 4 (0.43)                         6.6 (0.04)
+## 5 (0.38)                         7.1 (0.17)
+## 6 (1.57)                         6.2 (0.15)</code></pre>
+<pre class="r"><code># Print the last 6 rows
+tail(att)</code></pre>
+<pre><code>##                                                                            Table.43..Average.daily.attendance..ADA..as.a.percentage.of.total.enrollment..school.day.length..and.school.year.length.in.public.schools..by.school.level.and.state..2007.08
+## 54                                                                                                                                                                                                                             Wisconsin ...............
+## 55                                                                                                                                                                                                                             Wyoming .................
+## 56                                                                                                                                                                                                                                      †Not applicable.
+## 57                                                                                                                                                                                                       ‡Reporting standards not met (too few cases).  
+## 58 NOTE: Averages reflect data reported by schools rather than state requirements. School-reported length of day may exceed state requirements, and there is a range of statistical error in reported estimates. Standard errors appear in parentheses. 
+## 59                                                                                                     SOURCE: U.S. Department of Education, National Center for Education Statistics, Schools and Staffing Survey (SASS), \\Public School Questionnaire
+##                                                               X    X.1 X.2
+## 54                                                         95.0 (0.57) 6.9
+## 55                                                         92.4 (1.15) 6.9
+## 56                                                                        
+## 57                                                                        
+## 58                                                                        
+## 59 \\ 2003-04 and 2007-08. (This table was prepared June 2011.)           
+##       X.3 X.4   X.5   X.6   X.7  X.8    X.9 X.10   X.11 X.12   X.13 X.14
+## 54 (0.04) 180 (0.7) 1,246 (8.6) 95.4 (0.41)  6.9 (0.05) 93.0 (1.91)  7.0
+## 55 (0.05) 175 (1.3) 1,201 (8.3) 92.2 (1.65)  6.9 (0.05) 92.4 (0.75)  7.0
+## 56                                                                      
+## 57                                                                      
+## 58                                                                      
+## 59                                                                      
+##      X.15
+## 54 (0.14)
+## 55 (0.07)
+## 56       
+## 57       
+## 58       
+## 59</code></pre>
+<pre class="r"><code># Print the structure
+str(att)</code></pre>
+<pre><code>## 'data.frame':    59 obs. of  17 variables:
+##  $ Table.43..Average.daily.attendance..ADA..as.a.percentage.of.total.enrollment..school.day.length..and.school.year.length.in.public.schools..by.school.level.and.state..2007.08: Factor w/ 58 levels &quot;&quot;,&quot;1&quot;,&quot;Alabama .................&quot;,..: 1 1 2 51 3 4 5 6 7 8 ...
+##  $ X                                                                                                                                                                            : Factor w/ 42 levels &quot;&quot;,&quot;2&quot;,&quot;\\ 2003-04 and 2007-08. (This table was prepared June 2011.)&quot;,..: 42 41 2 22 28 8 6 14 23 29 ...
+##  $ X.1                                                                                                                                                                          : Factor w/ 45 levels &quot;&quot;,&quot;(0.22)&quot;,&quot;(0.23)&quot;,..: 1 1 1 2 22 21 41 27 14 6 ...
+##  $ X.2                                                                                                                                                                          : Factor w/ 14 levels &quot;&quot;,&quot;3&quot;,&quot;6.2&quot;,&quot;6.3&quot;,..: 1 14 2 7 11 6 5 10 3 11 ...
+##  $ X.3                                                                                                                                                                          : Factor w/ 14 levels &quot;&quot;,&quot;(0.02)&quot;,&quot;(0.03)&quot;,..: 1 1 1 2 7 5 9 6 7 5 ...
+##  $ X.4                                                                                                                                                                          : Factor w/ 15 levels &quot;&quot;,&quot;171&quot;,&quot;172&quot;,..: 1 15 14 10 10 10 11 9 11 2 ...
+##  $ X.5                                                                                                                                                                          : Factor w/ 22 levels &quot;&quot;,&quot;(0.0)&quot;,&quot;(0.1)&quot;,..: 1 1 1 3 10 21 19 4 6 12 ...
+##  $ X.6                                                                                                                                                                          : Factor w/ 48 levels &quot;&quot;,&quot;1,102&quot;,&quot;1,117&quot;,..: 1 48 47 26 45 15 13 36 5 28 ...
+##  $ X.7                                                                                                                                                                          : Factor w/ 48 levels &quot;&quot;,&quot;(10.1)&quot;,&quot;(10.3)&quot;,..: 1 1 1 36 11 35 22 6 13 48 ...
+##  $ X.8                                                                                                                                                                          : Factor w/ 40 levels &quot;&quot;,&quot;6&quot;,&quot;81.0&quot;,..: 40 39 2 22 20 9 5 13 27 25 ...
+##  $ X.9                                                                                                                                                                          : Factor w/ 51 levels &quot;&quot;,&quot;(0.24)&quot;,&quot;(0.25)&quot;,..: 1 1 1 4 32 25 48 35 20 13 ...
+##  $ X.10                                                                                                                                                                         : Factor w/ 14 levels &quot;&quot;,&quot;6.2&quot;,&quot;6.3&quot;,..: 1 14 10 7 11 5 4 9 3 11 ...
+##  $ X.11                                                                                                                                                                         : Factor w/ 13 levels &quot;&quot;,&quot;(0.02)&quot;,&quot;(0.03)&quot;,..: 1 1 1 2 8 5 10 8 5 7 ...
+##  $ X.12                                                                                                                                                                         : Factor w/ 41 levels &quot;&quot;,&quot;‡&quot;,&quot;8&quot;,&quot;85.8&quot;,..: 41 40 3 19 35 30 8 18 9 20 ...
+##  $ X.13                                                                                                                                                                         : Factor w/ 47 levels &quot;&quot;,&quot;(†)&quot;,&quot;(0.35)&quot;,..: 1 1 1 7 5 25 43 35 23 20 ...
+##  $ X.14                                                                                                                                                                         : Factor w/ 17 levels &quot;&quot;,&quot;‡&quot;,&quot;5.9&quot;,&quot;6.1&quot;,..: 1 17 16 9 14 5 7 11 4 13 ...
+##  $ X.15                                                                                                                                                                         : Factor w/ 29 levels &quot;&quot;,&quot;(†)&quot;,&quot;(0.03)&quot;,..: 1 1 1 4 15 13 21 8 18 9 ...</code></pre>
+<p>These are some messy data! The column names are mostly missing, there are irrelevant notes at the end of the data frame, and it looks like the numeric data were imported as factors.</p>
 </div>
 <div id="removing-unnecessary-rows" class="section level4">
 <h4>Removing unnecessary rows</h4>
+<p>You can see that rows 1, 4, 11 and 17 of the spreadsheet are useless. But it safe to do something like the following ?</p>
+<pre><code>att2 &lt;- att[-c(1, 4, 11, 17),]</code></pre>
+<p><strong>No!</strong> From the last exercise, you might have realized that the <code>read.xls()</code> function actually imported the first row of the original data frame as the variable name for the first column. Did you notice that the first 6 rows of <code>att</code> aren’t the same as the first rows you saw in the original spreadsheet ? What about the 11th and 17th rows?</p>
+<p>When you’re importing a messy spreadsheet into R, it’s good practice to compare the original spreadsheet with what you’ve imported. It turns out that, by default, the <code>read.xls()</code> function skips empty rows such as the 11th and 17th.</p>
+<p>After viewing your data frame, your realize you still need to get rid of the third row of <code>att</code>, as well as rows 56 through 59.</p>
+<pre class="r"><code># Create remove
+remove &lt;- c(3, 56, 57, 58, 59)
+
+# Create att2
+att2 &lt;- att[-remove,]</code></pre>
 </div>
 <div id="removing-useless-columns" class="section level4">
 <h4>Removing useless columns</h4>
+<p>You can see here that the columns 3, 5, 7, 9, 11, 13, 15, 17 don’t contain the values of average daily attendance (ADA). You’ll get rid of them in this exercise.</p>
+<pre class="r"><code># Create remove
+remove &lt;- seq(3,17,by=2)
+
+# Create att3
+att3 &lt;- att2[, - remove]</code></pre>
 </div>
 <div id="splitting-the-data" class="section level4">
 <h4>Splitting the data</h4>
+<p>In many cases, a sigle data frame stores multiple “tables” of information. You can often diagnose this problem by looking at the column names and noticing duplicate rows.</p>
+<p>In this data frame, columns 1, 6, and 7 represent attendance data for US elementary schools, columns 1, 8, and 9 represent data for secondary schools, and columns 1 through 5 represent data for all schools in the US.</p>
+<p>Each of these should be stored as its own separate data frame, so you’ll split them up here.</p>
+<pre class="r"><code>## att3 is pre-loaded
+
+# Subset just elementary schools: att_elem
+att_elem &lt;- att3[,c(1,6,7)]
+
+# Subset just secondary schools: att_sec
+att_sec &lt;- att3[,c(1,8,9)]
+
+# Subset all schools: att4
+att4 &lt;- att3[,c(1:5)]</code></pre>
+<p>From here on, you’ll just be working with the data pertaining to all schools in the US.</p>
 </div>
 <div id="replacing-the-names" class="section level4">
 <h4>Replacing the names</h4>
+<p>Since you went through so much trouble finding out which row stored the variable names, you should store that row as the actual column names of the data frame. We’ve modified the names a bit in order to be more stylistically sound; they’re stored as <code>cnames</code> in the editor.</p>
+<p>This will also allow you to remove the first two rows.</p>
+<pre class="r"><code>## att4 is pre-loaded
+
+# Define cnames vector (don't change)
+cnames &lt;- c(&quot;state&quot;, &quot;avg_attend_pct&quot;, &quot;avg_hr_per_day&quot;, 
+            &quot;avg_day_per_yr&quot;, &quot;avg_hr_per_yr&quot;)
+
+# Assign column names of att4
+colnames(att4) &lt;- cnames
+
+# Remove first two rows of att4: att5
+att5 &lt;- att4[-c(1,2),]
+
+# View the names of att5
+names(att5)</code></pre>
+<pre><code>## [1] &quot;state&quot;          &quot;avg_attend_pct&quot; &quot;avg_hr_per_day&quot; &quot;avg_day_per_yr&quot;
+## [5] &quot;avg_hr_per_yr&quot;</code></pre>
 </div>
 <div id="cleaning-up-extra-characters" class="section level4">
 <h4>Cleaning up extra characters</h4>
+<p>One of the most irritating things about this dataset is that the state names are all stored as the same number of characters, with periods padding the ends of the shorter states. That may be helpful for reading the spreadsheet, but it makes your life harder, so you’ll deal with it in this exercise.</p>
+<p>One pitfall to avoid: <code>.</code> is a special character in the language of <em>regular expressions</em> (regex). In order to specificy that you actually want to remove periods and not their regex equivalent (which is “all characters”), use <code>\\.</code>. This is called an “escape” sequence.</p>
+<pre class="r"><code># Remove all periods in state column
+att5$state &lt;- str_replace_all(att5$state, &quot;\\.&quot;, &quot;&quot;)
+
+# Remove white space around state names
+att5$state &lt;- str_trim(att5$state)
+
+# View the head of att5
+head(att5)</code></pre>
+<pre><code>##           state avg_attend_pct avg_hr_per_day avg_day_per_yr avg_hr_per_yr
+## 4 United States           93.1            6.6            180         1,193
+## 5       Alabama           93.8            7.0            180         1,267
+## 6        Alaska           89.9            6.5            180         1,163
+## 7       Arizona           89.0            6.4            181         1,159
+## 8      Arkansas           91.8            6.9            179         1,229
+## 9    California           93.2            6.2            181         1,129</code></pre>
 </div>
 <div id="some-final-type-conversions" class="section level4">
 <h4>Some final type conversions</h4>
+<p>Finally, you’ll convert the values in certain variables to numerics (intead of factors). It’s worth noting that in previous chapters, your numerical data has often come in as character strings. This is just a difference between <code>read.xls()</code> and the other import function you’ve used.</p>
+<p>The <code>dplyr</code> package offers an efficient method for applying a function to many columns at once. Since you might not have taken the <code>dplyr</code> course yet, we’re just showing you the code here. You’ll do the some thing, but using subsetting and <code>sapply()</code> instead.</p>
+<pre class="r"><code># Change columns to numeric using dplyr (don't change)
+library(dplyr)
+example &lt;- mutate_each(att5, funs(as.numeric), -state)
+
+# Define vector containing numerical columns: cols
+cols &lt;- 2:5
+
+# Use sapply to coerce cols to numeric
+att5[, cols] &lt;- sapply(att5[, cols], as.numeric)</code></pre>
 </div>
 </div>
 

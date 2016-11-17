@@ -1,0 +1,292 @@
+---
+title: "Data Manipulation in R with dplyr"
+author: "GT"
+date: "November 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction to dplyr and tbls
+
+Introduction to the dplyr package and the tbl class. Learn the
+philosophy that guides dplyr, discover some useful applications
+of the dplyr package, and meet the data structures that dplyr 
+uses behind the scenes.
+
+#### Load the dplyr and hflights package
+
+Welcome to the interactive exercises part of your `dplyr` course.
+Here you will learn the ins and outs of working with `dplyr`. 
+`dplyr` is an R package, a collection of functions and data sets
+that enhance the R language.
+
+Throughout this course you will use `dplyr` to analye a data set
+of airline flight data containing fligths that departed from 
+Houston. This data is stored in a package calle `hflights`.
+
+```{r}
+# Load the dplyr package
+library(dplyr)
+
+# Load the hflights package
+library(hflights)
+
+# Call both head() and summary() on hflights
+head(hflights)
+summary(hflights)
+```
+
+#### Explore the data set
+
+A data scientist must be familiar with his or her data. Experiment
+with the data set in the console and maybe try to generate
+some insightful plots.
+
+How many observations and how many variables are contained in
+the hflight data set ?
+
+```{r}
+dim(hflights)
+```
+
+The variables are stored in the columns, whereas the observations 
+are stored in the rows of this data set. As you can see, this
+data set is relatively large. In fact, it's about 25Mb in size.
+For your convenience, we will continue the course's exercises with 
+a random subset of the dataset.
+
+```{r}
+set.seed(10)
+hflights <- hflights[sample(nrow(hflights),0.1*nrow(hflights)),]
+dim(hflights)
+```
+
+
+#### Convert data.frame to table
+
+As Garrett explained, a **tbl** is just a special kind of data.frame.
+They make your data easier to look at, but also easier to work with.
+On top of this, it is straightforward to derive a tbl from a data.frame
+structure using `tbl_df()`.
+
+The tbl format changes how R displays your data, but it does not
+change the data's underlying data structure. A tbl inherits the
+original class of its input, in this case, a data.frame. This
+means that you can still manipulate the tbl as if it were a data.frame.
+In other words, you can do anything with the `hflights` tbl that you 
+could do with the `hflights` data.frame.
+
+```{r}
+# Convert the hflights data.frame into a hflights tbl
+hflights <- tbl_df(hflights)
+
+# Display the hflights tbl
+hflights
+
+# Create the object carriers
+carriers <- hflights$UniqueCarrier
+
+class(hflights)
+```
+
+Note that the resulting `hflights` tbl is also a data.frame; you
+can assert this by executing `class(hflights)` in the console. 
+This means you can do everything with a tbl that you could do with
+a data.frame.
+
+#### Changing labels of hflights
+
+A bit of cleaning would be a good idea since the `UniqueCarrier`
+variable of `hflights` uses a confusing code system.
+
+To do this, let's work with a lookup table, that comes in the
+form of a named vector. When you subset the lookup table with
+a character string, R will return the values of the lookup table
+that correspond to the names in the character string. To see
+fow this works, run following code:
+
+```{r}
+two <- c("AA", "AS")
+lut <- c("AA" = "American",
+         "AS" = "Alaska",
+         "B6" = "JetBlue")
+two <- lut[two]
+two
+```
+
+```{r}
+# Both the dplyr and hflights packages are loaded into workspace
+lut <- c("AA" = "American", "AS" = "Alaska", "B6" = "JetBlue", "CO" = "Continental", 
+         "DL" = "Delta", "OO" = "SkyWest", "UA" = "United", "US" = "US_Airways", 
+         "WN" = "Southwest", "EV" = "Atlantic_Southeast", "F9" = "Frontier", 
+         "FL" = "AirTran", "MQ" = "American_Eagle", "XE" = "ExpressJet", "YV" = "Mesa")
+
+# Add the Carrier column to hflights
+hflights$Carrier <- lut[hflights$UniqueCarrier]
+
+# Glimpse at hflights
+glimpse(hflights)
+```
+
+Let's try a similar thing, but this time to change the labels
+in the `CancellationCode` column. This column lists reasons why
+a flight was cancelled using a non-informative alphabetical code.
+
+```{r}
+unique(hflights$CancellationCode)
+```
+
+A lookup table `lut` has already been created for you, that
+converts the alphabetical codes into more meaningful strings.
+
+```{r}
+# The lookup table
+lut <- c("A" = "carrier", "B" = "weather", "C" = "FFA", "D" = "security", "E" = "not cancelled")
+
+# Add the Code column
+hflights$Code <- lut[hflights$CancellationCode]
+
+# Glimpse at hflights
+glimpse(hflights)
+```
+
+### Select and mutate
+
+Get familiar with dplyr's manipulation verbs. Meet the five
+verbs and then practice using the mutate and select verbs.
+
+#### The five verbs and their meaning
+
+The `dplyr` package contains five key data manipulation functions,
+also called verbs:
+
+- `select()`, which returns a subset of the columns
+- `filter()`, that is able to return a subset of the rows
+- `arrange()`, that reorders the rows according to single or
+  multiple variable
+- `mutate()`, used to add columns from existing data
+- `summarise()`, which reduces each group to a single row
+  by calculating aggregate measures
+
+What order of operations should we use to find the average value
+of the `ArrDelay` variable for all American Airline flights
+in the `hflights` tbl ?
+
+```{r}
+filter(hflights, hflights$UniqueCarrier == "AA") %>% summarise(mean=mean(ArrDelay, na.rm=TRUE))
+```
+
+#### Choosing is not losing! The select verb
+
+To answer the simple question wheter flight delays tend to shrink
+or grow during a flight, we can safely discard a lot of the variables
+of each flight. To select only the ones that matter, we can use
+`select()`.
+
+As an example, take the following call, that selects the variables
+`var1` and `var2` from the data frame `df`.
+
+```
+select(df, var1, var2)
+```
+
+You can also use `:` to select a range of variables and `-` to
+exclude some variables, similar to indexing a data.frame with 
+square brackets. You can use both variable's names as well as 
+integer indexes. This call selects the four first variables
+except for the second one of a data frame `df`:
+
+```
+select(df, 1:4, -2)
+```
+
+`select()` does not change the data frame it is called on;
+you have to explicitly assign the result of `select()` to a 
+varible to store the result.
+
+```{r}
+# Print out a tbl with the four columns of hflights related to delay
+select(hflights, ActualElapsedTime, AirTime, ArrDelay, DepDelay)
+
+# Print out the columns Origin up to Cancelled of hflights
+select(hflights, Origin:Cancelled)
+
+# Answer to last question: be concise!
+select(hflights, Year:DayOfWeek, ArrDelay:Diverted)
+```
+
+Bear in mind that `select()` does not modify the original dataset.
+Instead, `select()` returns a new, modified copy. Therefore,
+choosing is not losing! You should save the result to a new variable
+if you want to be able to use it later.
+
+#### Helper functions for variable selection
+
+`dplyr` comes with a set of helper functions that can help you
+select groups of variables inside a `select()` call:
+
+- `starts_with("X")`: every name that starts with `"X"`
+- `end_with("X")`: every name that ends with `"X"`
+- `contains("X")`: every name that contains `"X"`
+- `matches("X")`: every name that matches `"X"`, where `"X"` can be
+  a regular expression
+- `num_range("x", 1:5)`: the variables names `x01`, `x02`, `x03`,
+  `x04`, `x05`
+- `one_of(x)`: every name that appears in `x`, which should be 
+  a character vector
+
+Pay attention here: when you refer to columns directly inside `select()`,
+you don't use quotes. If you use the helper functions, you do use quotes.
+
+```{r}
+# Print out a tbl containing just ArrDelay and DepDelay
+select(hflights, ends_with("Delay"))
+
+# Print out a tbl as described in the second instruction, using both helper functions and variable names
+select(hflights, starts_with("Cancell"), ends_with("Num"), UniqueCarrier)
+
+# Print out a tbl as described in the third instruction, using only helper functions.
+select(hflights, ends_with("Time"), ends_with("Delay"))
+```
+
+This exercise demonstrates the power of the helper functions. 
+They can limit the amount of coding drastically. 
+Beware of too obscure queries however; you still want your code to be
+clear for fellow data scientists!
+
+#### Comparison to basic R
+
+To see the added value of the `dplyr` package, it is useful to 
+compare its syntax with basic R. Up to now, you have only considered
+functionality that is also available without the use of `dplyr`.
+The elegance and ease-of-use of `dplyr` is a great plus though.
+
+```{r}
+# Finish select call so that ex1d matches ex1r
+ex1r <- hflights[c("TaxiIn", "TaxiOut", "Distance")]
+ex1d <- select(hflights, Distance:TaxiOut)
+
+# Finish select call so that ex2d matches ex2r
+ex2r <- hflights[c("Year", "Month", "DayOfWeek", "DepTime", "ArrTime")]
+ex2d <- select(hflights, Year:ArrTime, -DayofMonth)
+
+# Finish select call so that ex3d matches ex3r
+ex3r <- hflights[c("TailNum", "TaxiIn", "TaxiOut")]
+ex3d <- select(hflights, starts_with("T"))
+```
+
+As you can see, the `dplyr` syntax can simplify things a lot. 
+The key to success is to look for structure in your column names. 
+Time to explore another data manipulation verb!
+
+#### Mutating is creating
+
+#### Add multiple variables using mutate
+
+#### Recap on mutate and select
+
+
+
